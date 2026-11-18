@@ -17,6 +17,10 @@ r_dir_file(hal_fingerprint_default, vendor_sysfs_battery_supply)
 allow hal_fingerprint_default vendor_sysfs_xiaomi_fingerprint:dir search;
 allow hal_fingerprint_default vendor_sysfs_xiaomi_fingerprint:file rw_file_perms;
 
+# Touchscreen input events, to see a finger leave the sensor (UDFPS handler)
+allow hal_fingerprint_default input_device:dir r_dir_perms;
+allow hal_fingerprint_default input_device:chr_file r_file_perms;
+
 # Sensor debug data
 allow hal_fingerprint_default vendor_fingerprint_data_file:dir r_dir_perms;
 allow hal_fingerprint_default vendor_fingerprint_data_file:file r_file_perms;
