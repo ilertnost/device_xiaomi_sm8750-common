@@ -88,6 +88,7 @@ TARGET_KERNEL_CONFIG := \
     vendor/sun_perf.config \
     vendor/xiaomi/sm8750.config
 TARGET_KERNEL_ADDITIONAL_FLAGS := TARGET_PRODUCT=$(PRODUCT_DEVICE)
+TARGET_KERNEL_CLANG_VERSION := r614150
 
 # Kernel modules
 BOARD_SYSTEM_KERNEL_MODULES_LOAD := $(strip $(shell cat $(COMMON_PATH)/modules.load.system_dlkm))
