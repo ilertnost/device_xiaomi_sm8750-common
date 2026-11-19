@@ -3,8 +3,23 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-cc_library_shared {
+// Xiaomi's MiSight reports events from the vendor blobs to MIUI's analytics
+// service. The stock library allocates a real JsonEventData payload, which the
+// inlined MiEvent::putString() in libar-pal.so dereferences. A source shim
+// that left the payload null made the audio HAL crash in MiEvent::reportEvent.
+cc_prebuilt_library_shared {
     name: "libmisight",
+    owner: "xiaomi",
     vendor: true,
-    srcs: ["MiSight.cpp"],
+    strip: {
+        none: true,
+    },
+    target: {
+        android_arm64: {
+            srcs: ["libmisight.so"],
+        },
+    },
+    compile_multilib: "64",
+    prefer: true,
+    check_elf_files: false,
 }
