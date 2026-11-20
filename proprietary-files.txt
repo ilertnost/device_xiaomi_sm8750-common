@@ -150,8 +150,6 @@ vendor/lib64/vendor.qti.hardware.fm-V1-ndk.so
 vendor/lib64/vendor.qti.hardware.fm@1.0.so
 
 # Bluetooth (A2DP)
-vendor/lib64/lib_bt_lhdc.so
-vendor/lib64/lib_bt_mihc.so
 vendor/lib64/btaudio_offload_if.so
 vendor/lib64/hw/android.hardware.bluetooth.audio-impl-qti.so
 vendor/lib64/hw/android.hardware.bluetooth.audio_sw.so;DISABLE_DEPS
