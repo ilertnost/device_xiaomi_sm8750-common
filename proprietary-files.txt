@@ -130,6 +130,7 @@ vendor/etc/vintf/manifest/bluetooth_sar.xml
 vendor/etc/vintf/manifest/bt_lmp_event-saidl.xml
 vendor/etc/vintf/manifest/bttpi-saidl.xml
 vendor/etc/vintf/manifest/manifest_btaudiocoreservices_qti.xml
+vendor/etc/vintf/manifest/bluetooth_audio.xml:vendor/etc/vintf/manifest/bluetooth_audio_qti.xml
 vendor/lib64/hw/android.hardware.bluetooth.lmp_event-impl-qti.so
 vendor/lib64/hw/android.hardware.bluetooth@1.0-impl-qti.so
 vendor/lib64/hw/android.hardware.bluetooth@aidl-impl-qti.so
