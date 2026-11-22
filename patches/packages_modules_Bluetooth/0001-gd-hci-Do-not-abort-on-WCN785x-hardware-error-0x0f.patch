@@ -1,0 +1,30 @@
+From f74fc28ea018eae78e56dbe43aaed6abb52f43a1 Mon Sep 17 00:00:00 2001
+From: ilertnost <ilamoiseev757@gmail.com>
+Date: Sun, 22 Nov 2026 22:12:56 +0300
+Subject: [PATCH] gd: hci: Do not abort on WCN785x hardware error 0x0f
+
+During LE Audio ISO streaming on WCN785x controllers, the firmware
+may emit a transient 0x0f hardware error event without losing controller
+state. Log a warning instead of crashing com.android.bluetooth.
+---
+ system/gd/hci/hci_layer.cc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/system/gd/hci/hci_layer.cc b/system/gd/hci/hci_layer.cc
+index fd85769d45..80b0c77a84 100644
+--- a/system/gd/hci/hci_layer.cc
++++ b/system/gd/hci/hci_layer.cc
+@@ -562,6 +562,10 @@ struct HciLayer::impl {
+     module_.LifeCycleStop();
+     kill(getpid(), SIG_RESET_CTRL);
+ #else
++    if (event_view.GetHardwareCode() == 0x0f) {
++      log::warn("Ignoring non-fatal Hardware Error Event with code 0x0f");
++      return;
++    }
+     log::fatal("Hardware Error Event with code 0x{:02x}", event_view.GetHardwareCode());
+ #endif
+   }
+-- 
+2.56.1
+

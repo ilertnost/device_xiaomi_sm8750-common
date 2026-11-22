@@ -46,6 +46,7 @@ persist.vendor.qcom.bluetooth.dualmode_transport_support=true
 persist.vendor.qcom.bluetooth.lossless_aptx_adaptive_le.enabled=true
 persist.vendor.service.bdroid.soc.alwayson=true
 ro.bluetooth.a2dp_offload.supported=true
+ro.vendor.bluetooth.btconfigstore=false
 
 # Camera
 ro.camera.disableHeicUltraHDR=true
