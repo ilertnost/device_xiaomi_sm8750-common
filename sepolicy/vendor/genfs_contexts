@@ -32,6 +32,7 @@ genfscon sysfs /devices/platform/soc/soc:strategy-fg                            
 genfscon sysfs /devices/virtual/xm_power                                                        u:object_r:vendor_sysfs_xm_power:s0
 
 # Display
+genfscon sysfs /devices/virtual/mi_display                                         u:object_r:vendor_sysfs_displayfeature:s0
 genfscon sysfs /devices/virtual/mi_display/disp_feature                                         u:object_r:vendor_sysfs_displayfeature:s0
 
 # Wakeup sources

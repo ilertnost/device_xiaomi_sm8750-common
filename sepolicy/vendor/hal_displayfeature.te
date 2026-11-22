@@ -1,0 +1,6 @@
+binder_call(hal_displayfeature_client, hal_displayfeature_server)
+binder_call(hal_displayfeature_server, hal_displayfeature_client)
+
+hal_attribute_service(hal_displayfeature, hal_displayfeature_service)
+
+binder_use(hal_displayfeature_server)
