@@ -25,9 +25,9 @@ vendor.qc2audio.per_frame.flac.dec.enabled=true
 vendor.qc2audio.suspend.enabled=false
 
 # Bluetooth
-persist.bluetooth.a2dp_offload.cap=sbc-aac-aptx-aptxhd-ldac-aptxadaptive
+persist.bluetooth.a2dp_offload.cap=sbc-aac-aptx-aptxhd-ldac-aptxadaptive-lhdc
 persist.bluetooth.a2dp_offload.disabled=false
-persist.vendor.bt.a2dp_offload_cap=sbc-aptx-aptxtws-aptxhd-aac-ldac-aptxadaptive
+persist.vendor.bt.a2dp_offload_cap=sbc-aptx-aptxtws-aptxhd-aac-ldac-aptxadaptive-lhdc-mihc
 persist.bluetooth.leaudio_offload.disabled=false
 # WCN785x firmware crashes with Hardware Error 0x0f after an LE Subrate Request.
 persist.bluetooth.leaudio.subrating_disabled=true

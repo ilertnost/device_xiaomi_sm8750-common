@@ -1269,3 +1269,9 @@ vendor/etc/aidl/le_audio/aidl_audio_set_configurations.json;MAKE_COPY_RULE_ONLY
 vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.json;MAKE_COPY_RULE_ONLY
 vendor/etc/a2dp_audio_policy_configuration.xml;MAKE_COPY_RULE_ONLY
 vendor/etc/bluetooth_qti_audio_policy_configuration.xml;MAKE_COPY_RULE_ONLY
+
+vendor/lib64/lib_bt_aptx.so
+vendor/lib64/lib_bt_ble.so
+vendor/lib64/lib_bt_bundle.so
+vendor/lib64/lib_bt_lhdc.so
+vendor/lib64/lib_bt_mihc.so
