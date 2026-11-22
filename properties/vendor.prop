@@ -189,3 +189,4 @@ vendor.wv.oemcrypto.debug.enable_hlos_data_path=true
 
 # WiFi
 wifi.aware.interface=wifi-aware0
+vendor.displayfeature.entry.enable=true
