@@ -1,26 +1,26 @@
-# Патчи Evolution X для Xiaomi 15 (dada)
+# Evolution X patches for the Xiaomi 15 (dada)
 
-С 2026-11-22 upstream-репозитории не форкаются: в дереве лежит стоковый
-AOSP / Evolution X / LineageOS, а все наши изменения хранятся в
-`device/xiaomi/sm8750-common/patches` и применяются скриптом. Форками
-остаются только device-specific репозитории (device tree, vendor blobs,
-kernel) и `hardware/dolby` (в нём лежат проприетарные blobs HyperOS).
+Since 2026-11-22 upstream projects are no longer forked. The tree carries
+stock AOSP / Evolution X / LineageOS, and all local changes live in
+`device/xiaomi/sm8750-common/patches` and are applied by a script. Only
+device-specific repositories (device tree, vendor blobs, kernel) and
+`hardware/dolby` (HyperOS blobs) remain forks.
 
-Схема взята из `android_device_xiaomi_dada`:
-`device/xiaomi/dada/vendorsetup.sh` вызывает
-`device/xiaomi/sm8750-common/patches/apply-patches.sh` при
+The layout follows `android_device_xiaomi_dada`:
+`device/xiaomi/dada/vendorsetup.sh` calls
+`device/xiaomi/sm8750-common/patches/apply-patches.sh` on
 `source build/envsetup.sh`.
 
-## Раскладка
+## Layout
 
 ```
 device/xiaomi/sm8750-common/patches/
-    <путь-репозитория-через-подчёркивания>/
-        NNNN-описание.patch
+    <project-path-with-underscores>/
+        NNNN-description.patch
 ```
 
-Имя каталога — это путь проекта от корня дерева, в котором `/` заменены на
-`_`. Например:
+The directory name is the project path from the tree root with `/` replaced
+by `_`. For example:
 
 ```
 frameworks_av/                              -> frameworks/av
@@ -36,41 +36,41 @@ vendor_qcom_opensource_display-intf/        -> vendor/qcom/opensource/display-in
 vendor_qcom_opensource_interfaces/          -> vendor/qcom/opensource/interfaces
 ```
 
-Если в пути проекта есть подчёркивание (`external/rust/rutabaga_gfx`), одной
-замены `/` -> `_` недостаточно. В таком каталоге лежит файл `.project` с
-настоящим путём:
+If the project path itself contains an underscore
+(`external/rust/rutabaga_gfx`), replacing `/` with `_` is not enough. Such a
+directory carries a `.project` file with the real path:
 
 ```
 external_rust_rutabaga_gfx/.project   -> external/rust/rutabaga_gfx
 ```
 
-Внутри одного проекта патчи применяются в порядке имён файлов (`0001`,
-`0002`, ...). Скрипт требует `git format-patch` (строку `From: ... <...>`);
-plain diff он пропускает.
+Patches for one project are applied in file name order (`0001`, `0002`, ...).
+The script requires `git format-patch` output (a `From: ... <...>` line);
+plain diffs are skipped.
 
-Каталоги, начинающиеся с `_`, скрипт не трогает:
+Directories starting with `_` are ignored by the script:
 
-- `_committed/` — старые патчи device/vendor-изменений, которые уже
-  закоммичены в свои репозитории;
-- `_optional/` — экспериментальные патчи (classic aptX Adaptive);
-- `_forked-blob-repos/` — резервные копии патчей для репозиториев, которые
-  остаются форками (например, `hardware/dolby`).
+- `_committed/` — old device/vendor patches whose changes are already
+  committed in their own repositories;
+- `_optional/` — experimental patches (classic aptX Adaptive);
+- `_forked-blob-repos/` — patch backups for repositories that remain forks
+  (for example `hardware/dolby`).
 
-## Применение
+## Applying the patches
 
-Автоматически:
+Automatically:
 
 ```bash
 cd /data/AOSP/evo
 source build/envsetup.sh
 ```
 
-`vendorsetup.sh` запускает скрипт только если в
-`.repo/local_manifests/dada.xml` есть заголовок patch-based-манифеста. Со
-старым fork-манифестом патчи уже находятся в ветках форков, поэтому
-автозапуск отключён, чтобы не применять их повторно.
+`vendorsetup.sh` runs the script only when
+`.repo/local_manifests/dada.xml` carries the patch-based manifest header.
+With the old fork-based manifest the patches are already part of the fork
+branches, so automatic application is disabled to avoid applying them twice.
 
-Вручную:
+Manually:
 
 ```bash
 cd /data/AOSP/evo
@@ -78,25 +78,25 @@ bash device/xiaomi/sm8750-common/patches/apply-patches.sh \
     device/xiaomi/sm8750-common/patches
 ```
 
-Как работает скрипт:
+How the script works:
 
-- для каждого проекта берёт базовый коммит из `refs/remotes/m/` (ревизия
-  манифеста);
-- во временном индексе применяет все патчи проекта и сравнивает результат
-  с рабочим деревом;
-- если дерево уже совпадает — ничего не делает;
-- если дерево чистое и стоит на базе — применяет патчи через `git am`,
-  сохраняя автора и дату;
-- если есть локальные изменения, незавершённый am/rebase/merge и т.п. —
-  сообщает и оставляет дерево как есть.
+- for every project it takes the base commit from `refs/remotes/m/` (the
+  manifest revision);
+- it applies all patches of the project in a temporary index and compares
+  the result with the working tree;
+- if the tree already matches, it does nothing;
+- if the tree is clean and sits on the base, it applies the patches with
+  `git am`, preserving the author and date;
+- if there are local changes, an unfinished am/rebase/merge, or similar, it
+  reports the project and leaves it untouched.
 
-## Манифест без форков
+## Fork-free manifest
 
-`device/xiaomi/sm8750-common/patches/dada-patches.xml` — версия
-`.repo/local_manifests/dada.xml`, в которой upstream-проекты возвращены их
-владельцам и закреплены на коммитах, для которых сгенерированы патчи:
+`device/xiaomi/sm8750-common/patches/dada-patches.xml` is a variant of
+`.repo/local_manifests/dada.xml` where upstream projects are returned to
+their owners and pinned to the commits the patches were generated against:
 
-| Проект | Владелец | База патчей |
+| Project | Owner | Patch base |
 |---|---|---|
 | `frameworks/av` | Evolution-X | `80917b1522` |
 | `frameworks/native` | Evolution-X | `8c23b549b2` |
@@ -110,7 +110,7 @@ bash device/xiaomi/sm8750-common/patches/apply-patches.sh \
 | `packages/modules/Bluetooth` | Evolution-X | `00f2fc1131` |
 | `vendor/qcom/opensource/interfaces` | LineageOS | `b75ec20e94` |
 
-Переключение (после того как патчи проверены):
+Switching (after the patches have been verified):
 
 ```bash
 cd /data/AOSP/evo
@@ -118,108 +118,111 @@ mv .repo/local_manifests/dada.xml .repo/local_manifests/dada.xml.bak
 cp device/xiaomi/sm8750-common/patches/dada-patches.xml \
    .repo/local_manifests/dada.xml
 repo sync -j4
-source build/envsetup.sh          # автоматически применит патчи
+source build/envsetup.sh          # applies the patches automatically
 ```
 
-`dada-patches.xml` нельзя просто положить рядом с `dada.xml`: `repo` читает
-все `*.xml` из `local_manifests/`, и проекты задвоятся.
+Do not place `dada-patches.xml` next to `dada.xml`: `repo` reads every
+`*.xml` in `local_manifests/` and would define the same projects twice.
 
-Device/vendor-изменения уже закоммичены локально и не являются патчами:
+Device/vendor changes are already committed locally and are not patches:
 
 - `device/xiaomi/sm8750-common` — `c9e0c3f` (BAP, `dual_bidirection_swb`,
-  отключение subrating);
-- `vendor/xiaomi/dada` — `d356cdb` (LC3 убран из A2DP-портов).
+  subrating disabled);
+- `vendor/xiaomi/dada` — `d356cdb` (LC3 removed from the A2DP ports).
 
-Эти коммиты пока не запушены. Их старые patch-файлы оставлены только как
-резервные копии в `_committed/`.
+These commits have not been pushed yet. Their old patch files are kept only
+as backups under `_committed/`.
 
-`hardware/dolby` в новом манифесте остаётся форком `ilertnost`: это
-репозиторий с HyperOS blobs, его патчи лежат в
-`_forked-blob-repos/hardware/dolby/` и по умолчанию не применяются.
+`hardware/dolby` remains an `ilertnost` fork in the new manifest because it
+carries HyperOS blobs. Its patches live under
+`_forked-blob-repos/hardware/dolby/` and are not applied by default.
 
-## Список патчей
+## Patch list
 
-| Проект | Патчей | Что делает |
+| Project | Patches | Purpose |
 |---|---:|---|
 | `frameworks/av` | 1 | camera: implementation-defined stream sizes |
-| `frameworks/native` | 1 | SF: не защищать client target для protected camera |
-| `external/crosvm` | 2 | Android.bp visibility для vendor/platform |
+| `frameworks/native` | 1 | SF: do not protect the client target for protected camera |
+| `external/crosvm` | 2 | Android.bp visibility for vendor/platform |
 | `external/rust/rutabaga_gfx` | 1 | Android.bp visibility |
-| `packages/modules/Virtualization` | 1 | display client AIDL для platform |
+| `packages/modules/Virtualization` | 1 | display client AIDL for the platform |
 | `hardware/xiaomi` | 10 | fingerprint, MiSys, IR, powershare, sensors, touchfeature, Euicc |
 | `hardware/qcom-caf/sm8750/display/hal` | 3 | getDisplayAttributes, xiaomi_rgb_notifier, panel size |
 | `vendor/qcom/opensource/display-core` | 3 | getDisplayAttributes, light sensor, panel size |
 | `vendor/qcom/opensource/display-intf` | 1 | display attributes by hardware composer |
-| `packages/modules/Bluetooth` | 2 | one CIS per channel; отключение subrating |
-| `vendor/qcom/opensource/interfaces` | 1 | `codecSpecific` в classicVendorConfiguration |
+| `packages/modules/Bluetooth` | 2 | one CIS per channel; subrating disabled |
+| `vendor/qcom/opensource/interfaces` | 1 | `codecSpecific` in classicVendorConfiguration |
 
-Итого 26 активных патчей. Резервно: 2 патча `hardware/dolby`, 2 старых
-device/vendor-патча в `_committed/`, 1 опциональный classic aptX.
+26 active patches in total. Backups: 2 `hardware/dolby` patches, 2 old
+device/vendor patches under `_committed/`, and 1 optional classic aptX
+patch.
 
-## Опционально: classic aptX Adaptive (WIP)
+## Optional: classic aptX Adaptive (WIP)
 
 `_optional/packages/modules/Bluetooth/0001-classic-aptx-adaptive-wip.patch`
-— сохранённый net-diff ветки `backup/bt-local-20261121` (порт aptX Adaptive
-из AOSPA + QTI `classicVendorConfiguration` + AVDT/AIDL фиксы). Скрипт его
-не применяет: на classic A2DP aptX AD ранее ловили `Hardware Error 0x0f`,
-а текущий стабильный стек — SBC/AAC. Применять вручную, только если
-понадобится classic aptX AD:
+is the saved net diff of the `backup/bt-local-20261121` branch (aptX
+Adaptive port from AOSPA + QTI `classicVendorConfiguration` + AVDT/AIDL
+fixes). The script does not apply it: classic A2DP aptX AD previously
+triggered `Hardware Error 0x0f`, while the current stable stack is SBC/AAC.
+Apply it manually only if classic aptX AD is needed:
 
 ```bash
 git -C packages/modules/Bluetooth apply \
     device/xiaomi/sm8750-common/patches/_optional/packages/modules/Bluetooth/0001-classic-aptx-adaptive-wip.patch
 ```
 
-Важно: **LE** aptX Adaptive (`0xff/0x000a/0x0001`) в стоковом EvoX-модуле
-не поддержан. `system/bta/le_audio/le_audio_vendor_codec.h` знает только
-Google vendor codec `0x00e0`; Qualcomm `0x000a` в backup-ветке тоже нет.
-Чтобы earbuds переключались с LC3 на aptX Adaptive LE, нужен отдельный
-порт Qualcomm vendor codec в `le_audio_vendor_codec.h`/`codec_manager.cc`
-(в стоковой HyperOS эта поддержка есть).
+Important: **LE** aptX Adaptive (`0xff/0x000a/0x0001`) is not supported by
+the stock Evolution X Bluetooth module.
+`system/bta/le_audio/le_audio_vendor_codec.h` only knows the Google vendor
+codec `0x00e0`; the Qualcomm `0x000a` codec is absent from the backup branch
+as well. To make the earbuds switch from LC3 to aptX Adaptive LE, a separate
+port of the Qualcomm vendor codec is required in
+`le_audio_vendor_codec.h`/`codec_manager.cc` (stock HyperOS has this
+support).
 
-## LE Audio: что выяснено по стоковой записи
+## LE Audio: findings from the stock capture
 
-Стоковая HyperOS 4.0.4.0 (`/data/ilert-dada-bt/stock/20-leaudio`):
+Stock HyperOS 4.0.4.0 (`/data/ilert-dada-bt/stock/20-leaudio`):
 
 - `ro.bluetooth.leaudio_offload.supported=true`,
   `persist.bluetooth.leaudio_offload.disabled=false`,
   `persist.vendor.qcom.bluetooth.aptx_adaptive_le.enabled=true`,
   `...lossless_aptx_adaptive_le.enabled=true`;
-- `Codec location: ADSP`, PACS содержат LC3 и Qualcomm vendor codec
+- `Codec location: ADSP`; PACS contains LC3 and the Qualcomm vendor codec
   `0xff/0x000a/0x0001` (aptX Adaptive LE / lossless);
-- сток **тоже** отправляет `StartConnSubrate` с теми же параметрами
-  (`max 2, min 1, cont 1, timeout 5000, mode 4`) и не падает;
-- `persist.bluetooth.a2dp_offload.cap` в стоке **без** LC3
-  (`sbc-aac-aptx-aptxhd-ldac-lhdc-mihc`), поэтому LC3 в A2DP-портах — наша
-  ошибка конфигурации, а не фича;
+- stock **also** sends `StartConnSubrate` with the same parameters
+  (`max 2, min 1, cont 1, timeout 5000, mode 4`) and does not crash;
+- stock `persist.bluetooth.a2dp_offload.cap` has **no** LC3
+  (`sbc-aac-aptx-aptxhd-ldac-lhdc-mihc`), so LC3 in the A2DP ports was our
+  configuration error, not a feature;
 - `lib_bt_ble.so`, `lib_bt_mihc.so`, `lib_bt_aptx.so`, `lib_bt_lhdc.so`,
-  `lib_bt_bundle.so` в стоке есть; в нашем vendor-дереве они тоже уже есть.
+  and `lib_bt_bundle.so` are present in stock; our vendor tree already has
+  them too.
 
-Наш краш (`Hardware Error 0x0f`, `Rx VSE HW error::Bus error`) происходит
-через ~350 мс после `StartConnSubrate`. Патч
-`packages_modules_Bluetooth/0002-...` отключает host-initiated subrating
-(по умолчанию; можно вернуть через
-`persist.bluetooth.leaudio.subrating_disabled=false`). Патч
-`0001-...` включает one CIS per channel для ADSP-оффлоада. Проп
-`bluetooth.leaudio.dual_bidirection_swb.supported=true` выставлен как в
-стоке.
+Our crash (`Hardware Error 0x0f`, `Rx VSE HW error::Bus error`) happens
+about 350 ms after `StartConnSubrate`.
+`packages_modules_Bluetooth/0002-...` disables host-initiated subrating by
+default; it can be re-enabled with
+`persist.bluetooth.leaudio.subrating_disabled=false`. Patch `0001-...`
+enables one CIS per channel for the ADSP offload path. The property
+`bluetooth.leaudio.dual_bidirection_swb.supported=true` is set as in stock.
 
-Если после этого LE Audio всё ещё падает, следующий шаг — сравнить
-`BTFM_PROXY`/`BTFMCODEC` и версию BT-прошивки с stock, а не трогать
-`StartConnSubrate` дальше.
+If LE Audio still crashes after that, the next step is to compare
+`BTFM_PROXY`/`BTFMCODEC` and the Bluetooth firmware version with stock
+instead of changing `StartConnSubrate` further.
 
-## Добавление нового патча
+## Adding a new patch
 
 ```bash
 cd /data/AOSP/evo
 
-# 1. Сделать изменение в проекте и закоммитить его локально.
-# 2. Сгенерировать format-patch в каталог проекта:
+# 1. Make the change in the project and commit it locally.
+# 2. Generate a format-patch into the project directory:
 git -C frameworks/av format-patch -1 --no-signature --zero-commit \
     --output-directory device/xiaomi/sm8750-common/patches/frameworks_av
 
-# Если изменение ещё не закоммичено, можно сделать временный коммит,
-# сгенерировать патч и откатить коммит:
+# If the change is not committed yet, create a temporary commit,
+# generate the patch, and undo the commit:
 git -C frameworks/av add -A
 git -C frameworks/av -c user.name='ilert' -c user.email='ilert@local' \
     commit -m 'wip: local change'
@@ -229,15 +232,16 @@ git -C frameworks/av reset --soft HEAD~1
 git -C frameworks/av reset
 ```
 
-Номер должен быть следующим в каталоге проекта. Если путь проекта содержит
-`_`, создайте рядом с патчами `.project` с настоящим путём:
+The number must be the next one in the project directory. If the project
+path contains `_`, create a `.project` file next to the patches with the
+real path:
 
 ```bash
 printf '%s\n' 'external/rust/rutabaga_gfx' \
     > device/xiaomi/sm8750-common/patches/external_rust_rutabaga_gfx/.project
 ```
 
-Проверка синтаксиса и заголовков:
+Syntax and header check:
 
 ```bash
 bash -n device/xiaomi/sm8750-common/patches/apply-patches.sh
@@ -246,10 +250,10 @@ for p in device/xiaomi/sm8750-common/patches/*/*.patch; do
 done
 ```
 
-## Исключения
+## Exceptions
 
-- `prebuilts/clang/host/linux-x86/clang-r614150/` — untracked toolchain,
-  не патч; предупреждение libclang/Rust bindgen намеренное.
-- `hardware/dolby` — остаётся форком, см. выше.
-- `device/xiaomi/*`, `vendor/xiaomi/*`, `kernel/xiaomi/*` — device-specific
-  репозитории, не форки upstream.
+- `prebuilts/clang/host/linux-x86/clang-r614150/` is an untracked toolchain,
+  not a patch; the libclang/Rust bindgen warning is intentional.
+- `hardware/dolby` remains a fork, see above.
+- `device/xiaomi/*`, `vendor/xiaomi/*`, and `kernel/xiaomi/*` are
+  device-specific repositories, not upstream forks.
