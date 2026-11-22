@@ -1265,10 +1265,7 @@ vendor/lib64/vendor.qti.hardware.wifidisplaysessionl@1.0-halimpl.so
 # Xiaomi
 vendor/lib64/vendor.xiaomi.hardware.aidl.mtdservice-V1-ndk_platform.so
 
-vendor/etc/aidl/hfp/hfp_codec_capabilities.xml;MAKE_COPY_RULE_ONLY
-vendor/etc/aidl/le_audio/aidl_audio_set_configurations.bfbs;MAKE_COPY_RULE_ONLY
 vendor/etc/aidl/le_audio/aidl_audio_set_configurations.json;MAKE_COPY_RULE_ONLY
-vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.bfbs;MAKE_COPY_RULE_ONLY
 vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.json;MAKE_COPY_RULE_ONLY
 vendor/etc/a2dp_audio_policy_configuration.xml;MAKE_COPY_RULE_ONLY
 vendor/etc/bluetooth_qti_audio_policy_configuration.xml;MAKE_COPY_RULE_ONLY
