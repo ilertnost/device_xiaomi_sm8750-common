@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ilert <ilert@local>
+Date: Sun, 22 Nov 2026 12:07:29 +0300
+Subject: [PATCH] leaudio: Disable host-initiated connection subrating by
+ default
+
+---
+ system/bta/le_audio/devices.cc | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/system/bta/le_audio/devices.cc b/system/bta/le_audio/devices.cc
+index 87aa01cff6..f8abb14146 100644
+--- a/system/bta/le_audio/devices.cc
++++ b/system/bta/le_audio/devices.cc
+@@ -1480,6 +1480,15 @@ void LeAudioDevice::StartLinkQualityReports(uint16_t cis_handle) {
+ }
+ 
+ void LeAudioDevice::StartConnSubrate() {
++  // The WCN Bluetooth controller on this platform crashes with a firmware
++  // Hardware Error 0x0f right after the host sends an LE Subrate Request.
++  // Disable host-initiated subrating by default; it can be re-enabled by
++  // setting persist.bluetooth.leaudio.subrating_disabled=false.
++  if (osi_property_get_bool("persist.bluetooth.leaudio.subrating_disabled", true)) {
++    log::info("Connection subrating disabled for {} (WCN firmware workaround)", address_);
++    return;
++  }
++
+   log::verbose(
+           " Subrate flag enabled. local conrtoller - {}, {}: remote controller - {}, remote host - "
+           "{}",

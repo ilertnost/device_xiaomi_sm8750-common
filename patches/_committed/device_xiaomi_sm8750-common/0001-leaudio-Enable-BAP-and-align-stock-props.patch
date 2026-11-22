@@ -1,0 +1,46 @@
+diff --git a/properties/product.prop b/properties/product.prop
+index e995fcb..d662379 100644
+--- a/properties/product.prop
++++ b/properties/product.prop
+@@ -14,7 +14,7 @@ bluetooth.profile.asha.central.enabled=true
+ bluetooth.profile.avrcp.target.enabled=true
+ bluetooth.profile.bap.broadcast.assist.enabled=false
+ bluetooth.profile.bap.broadcast.source.enabled=false
+-bluetooth.profile.bap.unicast.client.enabled=false
++bluetooth.profile.bap.unicast.client.enabled=true
+ bluetooth.profile.bas.client.enabled=true
+ bluetooth.profile.ccp.server.enabled=true
+ bluetooth.profile.csip.set_coordinator.enabled=true
+diff --git a/properties/system_ext.prop b/properties/system_ext.prop
+index d194078..0cb2cae 100644
+--- a/properties/system_ext.prop
++++ b/properties/system_ext.prop
+@@ -5,7 +5,7 @@ ro.audio.ihaladaptervendorextension_enabled=true
+ bluetooth.device.class_of_device=90,2,12
+ bluetooth.hfp.codec_aptx_voice.enabled=false
+ bluetooth.hfp.swb.supported=false
+-bluetooth.leaudio.dual_bidirection_swb.supported=false
++bluetooth.leaudio.dual_bidirection_swb.supported=true
+ bluetooth.profile.pbap.sim.enabled=true
+ bluetooth.profile.sap.server.enabled=true
+ persist.bluetooth.leaudio.notify.idle.during.call=true
+diff --git a/properties/vendor.prop b/properties/vendor.prop
+index fb90d25..c870193 100644
+--- a/properties/vendor.prop
++++ b/properties/vendor.prop
+@@ -29,6 +29,15 @@ persist.bluetooth.a2dp_offload.cap=sbc-aac-aptx-aptxhd-ldac-aptxadaptive
+ persist.bluetooth.a2dp_offload.disabled=false
+ persist.vendor.bt.a2dp_offload_cap=sbc-aptx-aptxtws-aptxhd-aac-ldac-aptxadaptive
+ persist.bluetooth.leaudio_offload.disabled=false
++# WCN685x firmware crashes with Hardware Error 0x0f after an LE Subrate Request.
++persist.bluetooth.leaudio.subrating_disabled=true
++persist.bluetooth.leaudio.bypass_allow_list=true
++persist.bluetooth.leaudio.allow_list_extend=Xiaomi Buds 5 Pro
++# Disable LE Audio connection subrating: the WCN785x firmware aborts with
++# "Hardware Error Event with code 0x0f" when the host sends a subrate request.
++# min > max makes the stack reject the request before it reaches the controller.
++bluetooth.ble.client.subrate_le_audio_mode_max_subrate.config=0
++bluetooth.ble.client.subrate_le_audio_mode_min_subrate.config=1
+ persist.sys.fflag.override.settings_bluetooth_hearing_aid=true
+ persist.vendor.qcom.bluetooth.aac_vbr_ctl.enabled=true
+ persist.vendor.qcom.bluetooth.aptxadaptiver2_1_support=true

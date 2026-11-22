@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Fri, 13 Nov 2026 15:12:33 +0100
+Subject: [PATCH] SF: Don't protect the client target for protected camera
+ layers
+
+Protected camera buffers are only ever scanned out by the display. On
+Qualcomm SoCs that puts the display in a secure camera mode which can't
+be combined with a protected client target, so every frame that also
+has one is rejected and only the camera layer stays on screen. The GPU
+can't sample those buffers either, so protecting the client target buys
+nothing. Leave it unprotected while one is visible, like Qualcomm's
+own SurfaceFlinger does.
+
+Test: atest libcompositionengine_test
+Test: Enroll face with a HAL owned secure camera preview
+Change-Id: I2186f445f26efd970984431e3d59c6f27650560c
+---
+ .../CompositionEngine/src/Output.cpp           | 18 +++++++++++++++---
+ .../CompositionEngine/tests/OutputTest.cpp     | 12 ++++++++++++
+ 2 files changed, 27 insertions(+), 3 deletions(-)
+
+diff --git a/services/surfaceflinger/CompositionEngine/src/Output.cpp b/services/surfaceflinger/CompositionEngine/src/Output.cpp
+index 31f3a3ddaf..1590e26007 100644
+--- a/services/surfaceflinger/CompositionEngine/src/Output.cpp
++++ b/services/surfaceflinger/CompositionEngine/src/Output.cpp
+@@ -1370,11 +1370,23 @@ void Output::updateProtectedContentState() {
+     // 1. The display is protected (in legacy, check if the display is secure)
+     // 2. Protected content is supported
+     // 3. At least one layer has protected content.
++    // 4. No layer is a protected camera buffer. Those are only ever scanned out by the display,
++    //    whose secure camera mode cannot be combined with a protected client target, and the
++    //    GPU can't sample them anyway.
+     if (outputState.isProtected && supportsProtectedContent) {
+         auto layers = getOutputLayersOrderedByZ();
+-        bool needsProtected = std::any_of(layers.begin(), layers.end(), [](auto* layer) {
+-            return layer->getLayerFE().getCompositionState()->hasProtectedContent;
+-        });
++        bool needsProtected = false;
++        for (auto* layer : layers) {
++            const auto* state = layer->getLayerFE().getCompositionState();
++            if (!state->hasProtectedContent) {
++                continue;
++            }
++            if (state->buffer && (state->buffer->getUsage() & GRALLOC_USAGE_HW_CAMERA_WRITE)) {
++                needsProtected = false;
++                break;
++            }
++            needsProtected = true;
++        }
+         if (needsProtected != mRenderSurface->isProtected()) {
+             mRenderSurface->setProtected(needsProtected);
+         }
+diff --git a/services/surfaceflinger/CompositionEngine/tests/OutputTest.cpp b/services/surfaceflinger/CompositionEngine/tests/OutputTest.cpp
+index 3f1d403ca9..831567d16d 100644
+--- a/services/surfaceflinger/CompositionEngine/tests/OutputTest.cpp
++++ b/services/surfaceflinger/CompositionEngine/tests/OutputTest.cpp
+@@ -5690,6 +5690,18 @@ TEST_F(OutputUpdateProtectedContentStateTest, ifProtectedContentLayerComposeByCl
+     mOutput.updateProtectedContentState();
+ }
+ 
++TEST_F(OutputUpdateProtectedContentStateTest, notProtectedForProtectedCameraLayer) {
++    mOutput.mState.isProtected = true;
++    mLayer1.mLayerFEState.hasProtectedContent = true;
++    mLayer2.mLayerFEState.hasProtectedContent = true;
++    mLayer2.mLayerFEState.buffer = sp<GraphicBuffer>::make();
++    mLayer2.mLayerFEState.buffer->usage = GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE;
++    EXPECT_CALL(mRenderEngine, supportsProtectedContent()).WillRepeatedly(Return(true));
++    EXPECT_CALL(*mRenderSurface, isProtected).WillOnce(Return(true));
++    EXPECT_CALL(*mRenderSurface, setProtected(false));
++    mOutput.updateProtectedContentState();
++}
++
+ struct OutputPresentFrameAndReleaseLayersTest : public testing::Test {
+     struct OutputPartialMock : public OutputPartialMockBase {
+         // Sets up the helper functions called by the function under test (and functions we can

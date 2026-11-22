@@ -1,0 +1,161 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Fri, 13 Nov 2026 13:07:54 +0100
+Subject: [PATCH] Android.bp: Make rutabaga_gfx available to the platform
+
+crosvm's devices crate depends on it, and Qualcomm's qcrosvm is a platform
+binary built on that crate.
+
+Change-Id: I3543abf6850f49691b1eac0714fce78e8618bd36
+---
+ Android.bp                                    |  5 ++-
+ third_party/mesa3d/src/magma/Android.bp       | 35 +++++++++++++++----
+ third_party/mesa3d/src/util/rust/Android.bp   |  5 ++-
+ .../mesa3d/src/virtio/protocols/Android.bp    |  5 ++-
+ .../src/virtio/virtgpu_kumquat/Android.bp     |  5 ++-
+ 5 files changed, 44 insertions(+), 11 deletions(-)
+
+diff --git a/Android.bp b/Android.bp
+index 5d2a3c6..4ad93ff 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -58,7 +58,10 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     cfgs: [
+         "fence_passing_option1",
+         "gfxstream_unstable",
+diff --git a/third_party/mesa3d/src/magma/Android.bp b/third_party/mesa3d/src/magma/Android.bp
+index 16df8b9..68280b0 100644
+--- a/third_party/mesa3d/src/magma/Android.bp
++++ b/third_party/mesa3d/src/magma/Android.bp
+@@ -27,7 +27,10 @@ rust_bindgen {
+     ],
+     host_supported: true,
+     vendor_available: true,
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_bindgen {
+@@ -49,7 +52,10 @@ rust_bindgen {
+     ],
+     host_supported: true,
+     vendor_available: true,
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_bindgen {
+@@ -71,7 +77,10 @@ rust_bindgen {
+     ],
+     host_supported: true,
+     vendor_available: true,
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_bindgen {
+@@ -93,7 +102,10 @@ rust_bindgen {
+     ],
+     host_supported: true,
+     vendor_available: true,
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_bindgen {
+@@ -115,7 +127,10 @@ rust_bindgen {
+     ],
+     host_supported: true,
+     vendor_available: true,
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_bindgen {
+@@ -137,7 +152,10 @@ rust_bindgen {
+     ],
+     host_supported: true,
+     vendor_available: true,
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_library {
+@@ -169,5 +187,8 @@ rust_library {
+         "libmesa3d_magma_xe_bindgen_rutabaga",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/third_party/mesa3d/src/util/rust/Android.bp b/third_party/mesa3d/src/util/rust/Android.bp
+index 5ccb710..3f9ca9f 100644
+--- a/third_party/mesa3d/src/util/rust/Android.bp
++++ b/third_party/mesa3d/src/util/rust/Android.bp
+@@ -36,5 +36,8 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/third_party/mesa3d/src/virtio/protocols/Android.bp b/third_party/mesa3d/src/virtio/protocols/Android.bp
+index 376a531..6c1bea8 100644
+--- a/third_party/mesa3d/src/virtio/protocols/Android.bp
++++ b/third_party/mesa3d/src/virtio/protocols/Android.bp
+@@ -32,5 +32,8 @@ rust_library {
+         "libmesa3d_util_rutabaga",
+         "libzerocopy",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/third_party/mesa3d/src/virtio/virtgpu_kumquat/Android.bp b/third_party/mesa3d/src/virtio/virtgpu_kumquat/Android.bp
+index 9e2f5e1..d053efa 100644
+--- a/third_party/mesa3d/src/virtio/virtgpu_kumquat/Android.bp
++++ b/third_party/mesa3d/src/virtio/virtgpu_kumquat/Android.bp
+@@ -32,5 +32,8 @@ rust_library {
+         "libmesa3d_protocols_rutabaga",
+         "libmesa3d_util_rutabaga",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }

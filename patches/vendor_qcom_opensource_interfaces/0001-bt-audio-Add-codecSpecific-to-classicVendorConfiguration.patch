@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ilert <ilert@local>
+Date: Sun, 22 Nov 2026 12:21:38 +0300
+Subject: [PATCH] bt-audio: Add codecSpecific to classicVendorConfiguration
+
+Change-Id: I1522b2d247982de133d657c419bb72943b2b1f97
+---
+ .../aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/.hash   | 2 +-
+ .../hardware/bluetooth/audio/classicVendorConfiguration.aidl    | 1 +
+ .../hardware/bluetooth/audio/classicVendorConfiguration.aidl    | 1 +
+ .../hardware/bluetooth/audio/classicVendorConfiguration.aidl    | 1 +
+ 4 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/.hash b/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/.hash
+index c90a552..6fac1c2 100644
+--- a/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/.hash
++++ b/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/.hash
+@@ -1 +1 @@
+-be7f6f90eb88c54a08b4bd98ba130b87a3a467c4
++0af72ddf4eb4413e8c160042670b11bad8d33766
+diff --git a/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl b/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
+index f6d0ac5..15fbf01 100644
+--- a/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
++++ b/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/1/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
+@@ -53,6 +53,7 @@ package vendor.qti.hardware.bluetooth.audio;
+ @VintfStability
+ parcelable classicVendorConfiguration {
+   vendor.qti.hardware.bluetooth.audio.VendorCodecType vendorCodecType;
++  CodecSpecific codecSpecific;
+   parcelable AptxAdaptiveR4Configuration {
+     vendor.qti.hardware.bluetooth.audio.AptxAdaptiveR4SampleRate sampleRate;
+     vendor.qti.hardware.bluetooth.audio.AptxAdaptiveR4ChannelMode channelMode;
+diff --git a/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/current/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl b/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/current/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
+index f6d0ac5..15fbf01 100644
+--- a/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/current/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
++++ b/bluetooth_audio/aidl/aidl_api/vendor.qti.hardware.bluetooth.audio/current/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
+@@ -53,6 +53,7 @@ package vendor.qti.hardware.bluetooth.audio;
+ @VintfStability
+ parcelable classicVendorConfiguration {
+   vendor.qti.hardware.bluetooth.audio.VendorCodecType vendorCodecType;
++  CodecSpecific codecSpecific;
+   parcelable AptxAdaptiveR4Configuration {
+     vendor.qti.hardware.bluetooth.audio.AptxAdaptiveR4SampleRate sampleRate;
+     vendor.qti.hardware.bluetooth.audio.AptxAdaptiveR4ChannelMode channelMode;
+diff --git a/bluetooth_audio/aidl/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl b/bluetooth_audio/aidl/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
+index 0cdb133..fddf612 100644
+--- a/bluetooth_audio/aidl/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
++++ b/bluetooth_audio/aidl/vendor/qti/hardware/bluetooth/audio/classicVendorConfiguration.aidl
+@@ -52,6 +52,7 @@ parcelable classicVendorConfiguration {
+       int decoder_capability_len;
+   }
+   VendorCodecType vendorCodecType;
++  CodecSpecific codecSpecific;
+   union CodecSpecific {
+     AptxAdaptiveR4Configuration aptxAdaptiveR4Config;
+   }

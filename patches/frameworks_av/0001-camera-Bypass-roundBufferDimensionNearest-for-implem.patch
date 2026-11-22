@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Thu, 12 Nov 2026 08:43:13 +0100
+Subject: [PATCH] camera: Bypass roundBufferDimensionNearest for implementation
+ defined streams
+
+Used by the preview, live photo and zoom map streams of the Xiaomi 15
+(dada) stock camera. They use sizes from the vendor stream
+configuration map, and rounding them to the public map changes their
+aspect ratio, which crashes the camera provider.
+
+Change-Id: I7dd7e03eb1486bf78e643bd1ffb9bc87bc795625
+---
+ .../libcameraservice/utils/SessionConfigurationUtils.cpp       | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/services/camera/libcameraservice/utils/SessionConfigurationUtils.cpp b/services/camera/libcameraservice/utils/SessionConfigurationUtils.cpp
+index 7cbf6995e8..84eca152c9 100644
+--- a/services/camera/libcameraservice/utils/SessionConfigurationUtils.cpp
++++ b/services/camera/libcameraservice/utils/SessionConfigurationUtils.cpp
+@@ -240,7 +240,8 @@ bool roundBufferDimensionNearest(int32_t width, int32_t height,
+     // those are not populated in static capabilities.
+     if (isPriviledgedClient == true &&
+             (format == HAL_PIXEL_FORMAT_YCbCr_420_888 || format == HAL_PIXEL_FORMAT_BLOB ||
+-             format == HAL_PIXEL_FORMAT_Y8 || format == HAL_PIXEL_FORMAT_Y16)) {
++             format == HAL_PIXEL_FORMAT_Y8 || format == HAL_PIXEL_FORMAT_Y16 ||
++             format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED)) {
+         ALOGI("Bypass roundBufferDimensionNearest for privilegedClient YUV streams "
+                 "width %d height %d for format %d", width, height, format);
+ 

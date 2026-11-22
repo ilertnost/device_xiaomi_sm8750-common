@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Thu, 12 Nov 2026 00:12:51 +0100
+Subject: [PATCH 02/10] fingerprint: Add Goodix ultrasonic module
+
+Xiaomi ships the HAL module of the Goodix ultrasonic under-display
+sensor as fingerprint.goodix_us. Devices sold with either it or the
+Qualcomm one carry both, and it is tried first: on a Qualcomm sensor
+it fails to open cleanly, while the Qualcomm module opened on a Goodix
+sensor sets up its pins and services before failing.
+
+Change-Id: Iefab90455245828105a0932c3832920084743edc
+---
+ aidl/fingerprint/Fingerprint.cpp | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/aidl/fingerprint/Fingerprint.cpp b/aidl/fingerprint/Fingerprint.cpp
+index 707eb53..f088fda 100644
+--- a/aidl/fingerprint/Fingerprint.cpp
++++ b/aidl/fingerprint/Fingerprint.cpp
+@@ -33,9 +33,9 @@ typedef struct fingerprint_hal {
+ } fingerprint_hal_t;
+ 
+ static const fingerprint_hal_t kModules[] = {
+-        {"fortsense"},  {"fpc"},         {"fpc_fod"}, {"goodix"},  {"goodix:gf_fingerprint"},
+-        {"goodix_fod"}, {"goodix_fod6"}, {"jiiov"},   {"qcom_us"}, {"silead"},
+-        {"syna"},
++        {"fortsense"},  {"fpc"},         {"fpc_fod"},   {"goodix"}, {"goodix:gf_fingerprint"},
++        {"goodix_fod"}, {"goodix_fod6"}, {"goodix_us"}, {"jiiov"},  {"qcom_us"},
++        {"silead"},     {"syna"},
+ };
+ 
+ }  // namespace

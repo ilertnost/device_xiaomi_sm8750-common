@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Fri, 13 Nov 2026 02:17:51 +0100
+Subject: [PATCH 1/2] Android.bp: Make the crosvm crates visible to vendor
+
+Qualcomm's qcrosvm, the virtual machine monitor of its Gunyah guest VMs,
+lives in vendor/qcom/opensource/crosvm-gunyah and builds on these
+crates.
+
+Change-Id: I3b00c4df8d7ce5979d3426587d5310b180609026
+---
+ Android.bp | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/Android.bp b/Android.bp
+index 8d4f86b55..22534041e 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -320,6 +320,12 @@ rust_defaults {
+             enabled: false,
+         },
+     },
+-    defaults_visibility: ["//external/crosvm:__subpackages__"],
+-    visibility: ["//external/crosvm:__subpackages__"],
++    defaults_visibility: [
++        "//external/crosvm:__subpackages__",
++        "//vendor:__subpackages__",
++    ],
++    visibility: [
++        "//external/crosvm:__subpackages__",
++        "//vendor:__subpackages__",
++    ],
+ }

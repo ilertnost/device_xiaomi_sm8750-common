@@ -1,0 +1,283 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Sun, 15 Nov 2026 03:26:38 +0100
+Subject: [PATCH 09/10] interfaces: Add the AIDL touchfeature interface
+
+The touch HAL Xiaomi ships on newer devices serves
+vendor.xiaomi.hw.touchfeature.ITouchFeature/default over AIDL. Describe
+it for Java clients; the service and its NDK library are prebuilts.
+
+Change-Id: I85475e228b0d438d61e805a2b9de7148a181bdfb
+---
+ .../xiaomi/hw/touchfeature/aidl/Android.bp    | 30 ++++++++++++++
+ .../vendor.xiaomi.hw.touchfeature/1/.hash     |  1 +
+ .../xiaomi/hw/touchfeature/ITouchFeature.aidl | 40 +++++++++++++++++++
+ .../touchfeature/ITouchFeatureCallback.aidl   | 27 +++++++++++++
+ .../xiaomi/hw/touchfeature/ITouchFeature.aidl | 40 +++++++++++++++++++
+ .../touchfeature/ITouchFeatureCallback.aidl   | 27 +++++++++++++
+ .../xiaomi/hw/touchfeature/ITouchFeature.aidl | 30 ++++++++++++++
+ .../touchfeature/ITouchFeatureCallback.aidl   | 11 +++++
+ 8 files changed, 206 insertions(+)
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/Android.bp
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/.hash
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+ create mode 100644 interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/Android.bp b/interfaces/xiaomi/hw/touchfeature/aidl/Android.bp
+new file mode 100644
+index 0000000..acda6db
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/Android.bp
+@@ -0,0 +1,30 @@
++//
++// SPDX-FileCopyrightText: The LineageOS Project
++// SPDX-License-Identifier: Apache-2.0
++//
++
++// Only the Java client: the service and its NDK library are prebuilts
++aidl_interface {
++    name: "vendor.xiaomi.hw.touchfeature",
++    srcs: ["vendor/xiaomi/hw/touchfeature/*.aidl"],
++    stability: "vintf",
++    owner: "xiaomi",
++    backend: {
++        cpp: {
++            enabled: false,
++        },
++        ndk: {
++            enabled: false,
++        },
++        java: {
++            platform_apis: true,
++        },
++    },
++    versions_with_info: [
++        {
++            version: "1",
++            imports: [],
++        },
++    ],
++    frozen: true,
++}
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/.hash b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/.hash
+new file mode 100644
+index 0000000..5a78139
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/.hash
+@@ -0,0 +1 @@
++dab7c8ac7a9b7bcd5e9e610d158d776f5ed04c37
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+new file mode 100644
+index 0000000..11adaf1
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+@@ -0,0 +1,40 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++///////////////////////////////////////////////////////////////////////////////
++// THIS FILE IS IMMUTABLE. DO NOT EDIT IN ANY CASE.                          //
++///////////////////////////////////////////////////////////////////////////////
++
++// This file is a snapshot of an AIDL file. Do not edit it manually. There are
++// two cases:
++// 1). this is a frozen version file - do not edit this in any case.
++// 2). this is a 'current' file. If you make a backwards compatible change to
++//     the interface (from the latest frozen version), the build system will
++//     prompt you to update this file with `m <name>-update-api`.
++//
++// You must not make a backward incompatible change to any AIDL file built
++// with the aidl_interface module type with versions property set. The module
++// type is used to build AIDL files in a way that they can be used across
++// independently updatable components of the system. If a device is shipped
++// with such a backward incompatible change, it has a high risk of breaking
++// later when a module using the interface is updated, e.g., Mainline modules.
++
++package vendor.xiaomi.hw.touchfeature;
++@VintfStability
++interface ITouchFeature {
++  int getModeCurValue(int touchId, int mode);
++  int getModeDefaultValue(int touchId, int mode);
++  int getModeMaxValue(int touchId, int mode);
++  int getModeMinValue(int touchId, int mode);
++  int[] getModeValue(int touchId, int mode);
++  String getTouchEvent();
++  int modeReset(int touchId, int mode);
++  int setModeLongValue(int touchId, int mode, int length, in int[] value);
++  int setModeValue(int touchId, int mode, int value);
++  String getModeCurValueString(int touchId, int mode);
++  String getModeWhiteList(int touchId, in int[] modes);
++  int registerCallback(int touchId, vendor.xiaomi.hw.touchfeature.ITouchFeatureCallback callback, String name);
++  int unregisterCallback(int touchId, vendor.xiaomi.hw.touchfeature.ITouchFeatureCallback callback, String name);
++  String setModePackageName(int touchId, int mode, String packageName);
++}
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+new file mode 100644
+index 0000000..f1d92cc
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/1/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+@@ -0,0 +1,27 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++///////////////////////////////////////////////////////////////////////////////
++// THIS FILE IS IMMUTABLE. DO NOT EDIT IN ANY CASE.                          //
++///////////////////////////////////////////////////////////////////////////////
++
++// This file is a snapshot of an AIDL file. Do not edit it manually. There are
++// two cases:
++// 1). this is a frozen version file - do not edit this in any case.
++// 2). this is a 'current' file. If you make a backwards compatible change to
++//     the interface (from the latest frozen version), the build system will
++//     prompt you to update this file with `m <name>-update-api`.
++//
++// You must not make a backward incompatible change to any AIDL file built
++// with the aidl_interface module type with versions property set. The module
++// type is used to build AIDL files in a way that they can be used across
++// independently updatable components of the system. If a device is shipped
++// with such a backward incompatible change, it has a high risk of breaking
++// later when a module using the interface is updated, e.g., Mainline modules.
++
++package vendor.xiaomi.hw.touchfeature;
++@VintfStability
++interface ITouchFeatureCallback {
++  int callback(int touchId, int event, int value, in int[] values, in String[] strings);
++}
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+new file mode 100644
+index 0000000..11adaf1
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+@@ -0,0 +1,40 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++///////////////////////////////////////////////////////////////////////////////
++// THIS FILE IS IMMUTABLE. DO NOT EDIT IN ANY CASE.                          //
++///////////////////////////////////////////////////////////////////////////////
++
++// This file is a snapshot of an AIDL file. Do not edit it manually. There are
++// two cases:
++// 1). this is a frozen version file - do not edit this in any case.
++// 2). this is a 'current' file. If you make a backwards compatible change to
++//     the interface (from the latest frozen version), the build system will
++//     prompt you to update this file with `m <name>-update-api`.
++//
++// You must not make a backward incompatible change to any AIDL file built
++// with the aidl_interface module type with versions property set. The module
++// type is used to build AIDL files in a way that they can be used across
++// independently updatable components of the system. If a device is shipped
++// with such a backward incompatible change, it has a high risk of breaking
++// later when a module using the interface is updated, e.g., Mainline modules.
++
++package vendor.xiaomi.hw.touchfeature;
++@VintfStability
++interface ITouchFeature {
++  int getModeCurValue(int touchId, int mode);
++  int getModeDefaultValue(int touchId, int mode);
++  int getModeMaxValue(int touchId, int mode);
++  int getModeMinValue(int touchId, int mode);
++  int[] getModeValue(int touchId, int mode);
++  String getTouchEvent();
++  int modeReset(int touchId, int mode);
++  int setModeLongValue(int touchId, int mode, int length, in int[] value);
++  int setModeValue(int touchId, int mode, int value);
++  String getModeCurValueString(int touchId, int mode);
++  String getModeWhiteList(int touchId, in int[] modes);
++  int registerCallback(int touchId, vendor.xiaomi.hw.touchfeature.ITouchFeatureCallback callback, String name);
++  int unregisterCallback(int touchId, vendor.xiaomi.hw.touchfeature.ITouchFeatureCallback callback, String name);
++  String setModePackageName(int touchId, int mode, String packageName);
++}
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+new file mode 100644
+index 0000000..f1d92cc
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/aidl_api/vendor.xiaomi.hw.touchfeature/current/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+@@ -0,0 +1,27 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++///////////////////////////////////////////////////////////////////////////////
++// THIS FILE IS IMMUTABLE. DO NOT EDIT IN ANY CASE.                          //
++///////////////////////////////////////////////////////////////////////////////
++
++// This file is a snapshot of an AIDL file. Do not edit it manually. There are
++// two cases:
++// 1). this is a frozen version file - do not edit this in any case.
++// 2). this is a 'current' file. If you make a backwards compatible change to
++//     the interface (from the latest frozen version), the build system will
++//     prompt you to update this file with `m <name>-update-api`.
++//
++// You must not make a backward incompatible change to any AIDL file built
++// with the aidl_interface module type with versions property set. The module
++// type is used to build AIDL files in a way that they can be used across
++// independently updatable components of the system. If a device is shipped
++// with such a backward incompatible change, it has a high risk of breaking
++// later when a module using the interface is updated, e.g., Mainline modules.
++
++package vendor.xiaomi.hw.touchfeature;
++@VintfStability
++interface ITouchFeatureCallback {
++  int callback(int touchId, int event, int value, in int[] values, in String[] strings);
++}
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl b/interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+new file mode 100644
+index 0000000..3e7f309
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeature.aidl
+@@ -0,0 +1,30 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package vendor.xiaomi.hw.touchfeature;
++
++import vendor.xiaomi.hw.touchfeature.ITouchFeatureCallback;
++
++/*
++ * The touch modes of Xiaomi's touch HAL. Modes are numbered as in the
++ * xiaomi_touch driver (common_data_mode); touchId selects the touchscreen.
++ */
++@VintfStability
++interface ITouchFeature {
++    int getModeCurValue(int touchId, int mode);
++    int getModeDefaultValue(int touchId, int mode);
++    int getModeMaxValue(int touchId, int mode);
++    int getModeMinValue(int touchId, int mode);
++    int[] getModeValue(int touchId, int mode);
++    String getTouchEvent();
++    int modeReset(int touchId, int mode);
++    int setModeLongValue(int touchId, int mode, int length, in int[] value);
++    int setModeValue(int touchId, int mode, int value);
++    String getModeCurValueString(int touchId, int mode);
++    String getModeWhiteList(int touchId, in int[] modes);
++    int registerCallback(int touchId, ITouchFeatureCallback callback, String name);
++    int unregisterCallback(int touchId, ITouchFeatureCallback callback, String name);
++    String setModePackageName(int touchId, int mode, String packageName);
++}
+diff --git a/interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl b/interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+new file mode 100644
+index 0000000..4a51304
+--- /dev/null
++++ b/interfaces/xiaomi/hw/touchfeature/aidl/vendor/xiaomi/hw/touchfeature/ITouchFeatureCallback.aidl
+@@ -0,0 +1,11 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package vendor.xiaomi.hw.touchfeature;
++
++@VintfStability
++interface ITouchFeatureCallback {
++    int callback(int touchId, int event, int value, in int[] values, in String[] strings);
++}

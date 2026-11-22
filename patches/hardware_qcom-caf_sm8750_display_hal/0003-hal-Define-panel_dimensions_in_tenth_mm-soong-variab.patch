@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Thu, 12 Nov 2026 01:42:19 +0100
+Subject: [PATCH 3/3] hal: Define `panel_dimensions_in_tenth_mm` soong variable
+
+Change-Id: I18389ea2ba105a2107b0272fd4435245ba0ad487
+---
+ Android.bp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/Android.bp b/Android.bp
+index faae6e8b..e43ed895 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -11,6 +11,7 @@ soong_config_module_type {
+         "oplus_udfps",
+         "samsung_udfps",
+         "xiaomi_rgb_notifier",
++        "panel_dimensions_in_tenth_mm",
+         "default",
+         "var3",
+         "llvmcov",
+@@ -175,6 +176,9 @@ qtidisplay_cc_defaults {
+         xiaomi_rgb_notifier: {
+             cflags: ["-DXIAOMI_RGB_NOTIFIER"],
+         },
++        panel_dimensions_in_tenth_mm: {
++            cflags: ["-DPANEL_DIMENSIONS_IN_TENTH_MM"],
++        },
+         var3 : {
+             enabled: false,
+             conditions_default: {

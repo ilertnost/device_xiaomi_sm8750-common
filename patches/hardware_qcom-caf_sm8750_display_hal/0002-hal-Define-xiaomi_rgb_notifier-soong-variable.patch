@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Wed, 11 Nov 2026 18:27:14 +0100
+Subject: [PATCH 2/3] hal: Define `xiaomi_rgb_notifier` soong variable
+
+Change-Id: Icbdaa6b4f1f05858e2fd41ee08750f5cfd893da5
+---
+ Android.bp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/Android.bp b/Android.bp
+index 7730e76d..faae6e8b 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -10,6 +10,7 @@ soong_config_module_type {
+         "udfps",
+         "oplus_udfps",
+         "samsung_udfps",
++        "xiaomi_rgb_notifier",
+         "default",
+         "var3",
+         "llvmcov",
+@@ -171,6 +172,9 @@ qtidisplay_cc_defaults {
+                 "-DUDFPS_ZPOS",
+             ],
+         },
++        xiaomi_rgb_notifier: {
++            cflags: ["-DXIAOMI_RGB_NOTIFIER"],
++        },
+         var3 : {
+             enabled: false,
+             conditions_default: {

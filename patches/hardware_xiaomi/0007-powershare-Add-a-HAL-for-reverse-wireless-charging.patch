@@ -1,0 +1,209 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Fri, 13 Nov 2026 19:36:28 +0100
+Subject: [PATCH 07/10] powershare: Add a HAL for reverse wireless charging
+
+Toggle the charger driver's reverse charging mode through Lineage's
+PowerShare interface, which backs the battery share tile.
+
+Change-Id: I81fbdc42b9869fed37fa70736f7f49d8a97b7534
+---
+ aidl/powershare/Android.bp                    | 21 +++++++
+ aidl/powershare/PowerShare.cpp                | 63 +++++++++++++++++++
+ aidl/powershare/PowerShare.h                  | 26 ++++++++
+ aidl/powershare/service.cpp                   | 25 ++++++++
+ ...endor.lineage.powershare-service.xiaomi.rc |  7 +++
+ ...ndor.lineage.powershare-service.xiaomi.xml |  7 +++
+ 6 files changed, 149 insertions(+)
+ create mode 100644 aidl/powershare/Android.bp
+ create mode 100644 aidl/powershare/PowerShare.cpp
+ create mode 100644 aidl/powershare/PowerShare.h
+ create mode 100644 aidl/powershare/service.cpp
+ create mode 100644 aidl/powershare/vendor.lineage.powershare-service.xiaomi.rc
+ create mode 100644 aidl/powershare/vendor.lineage.powershare-service.xiaomi.xml
+
+diff --git a/aidl/powershare/Android.bp b/aidl/powershare/Android.bp
+new file mode 100644
+index 0000000..277223b
+--- /dev/null
++++ b/aidl/powershare/Android.bp
+@@ -0,0 +1,21 @@
++//
++// SPDX-FileCopyrightText: The LineageOS Project
++// SPDX-License-Identifier: Apache-2.0
++//
++
++cc_binary {
++    name: "vendor.lineage.powershare-service.xiaomi",
++    vintf_fragments: ["vendor.lineage.powershare-service.xiaomi.xml"],
++    init_rc: ["vendor.lineage.powershare-service.xiaomi.rc"],
++    vendor: true,
++    relative_install_path: "hw",
++    srcs: [
++        "PowerShare.cpp",
++        "service.cpp",
++    ],
++    shared_libs: [
++        "libbase",
++        "libbinder_ndk",
++        "vendor.lineage.powershare-V1-ndk",
++    ],
++}
+diff --git a/aidl/powershare/PowerShare.cpp b/aidl/powershare/PowerShare.cpp
+new file mode 100644
+index 0000000..fee65c3
+--- /dev/null
++++ b/aidl/powershare/PowerShare.cpp
+@@ -0,0 +1,63 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#define LOG_TAG "vendor.lineage.powershare-service.xiaomi"
++
++#include "PowerShare.h"
++
++#include <android-base/file.h>
++#include <android-base/logging.h>
++#include <android-base/strings.h>
++
++using ::android::base::ReadFileToString;
++using ::android::base::Trim;
++using ::android::base::WriteStringToFile;
++
++namespace {
++
++// The charger driver refuses to transmit while the phone is charging itself
++// and turns transmission off on its own, so the mode is read back each time.
++constexpr const char* kReverseChargeModePath = "/sys/class/qcom-battery/reverse_chg_mode";
++
++}  // anonymous namespace
++
++namespace aidl {
++namespace vendor {
++namespace lineage {
++namespace powershare {
++
++ndk::ScopedAStatus PowerShare::getMinBattery(int32_t* _aidl_return) {
++    *_aidl_return = 0;
++    return ndk::ScopedAStatus::ok();
++}
++
++ndk::ScopedAStatus PowerShare::isEnabled(bool* _aidl_return) {
++    std::string value;
++    if (!ReadFileToString(kReverseChargeModePath, &value)) {
++        PLOG(ERROR) << "Failed to read " << kReverseChargeModePath;
++        return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
++    }
++
++    *_aidl_return = Trim(value) == "1";
++    return ndk::ScopedAStatus::ok();
++}
++
++ndk::ScopedAStatus PowerShare::setEnabled(bool enable) {
++    if (!WriteStringToFile(enable ? "1" : "0", kReverseChargeModePath)) {
++        PLOG(ERROR) << "Failed to write " << kReverseChargeModePath;
++        return ndk::ScopedAStatus::fromExceptionCode(EX_SERVICE_SPECIFIC);
++    }
++
++    return ndk::ScopedAStatus::ok();
++}
++
++ndk::ScopedAStatus PowerShare::setMinBattery(int32_t /* minBattery */) {
++    return ndk::ScopedAStatus::ok();
++}
++
++}  // namespace powershare
++}  // namespace lineage
++}  // namespace vendor
++}  // namespace aidl
+diff --git a/aidl/powershare/PowerShare.h b/aidl/powershare/PowerShare.h
+new file mode 100644
+index 0000000..be43ba7
+--- /dev/null
++++ b/aidl/powershare/PowerShare.h
+@@ -0,0 +1,26 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#pragma once
++
++#include <aidl/vendor/lineage/powershare/BnPowerShare.h>
++
++namespace aidl {
++namespace vendor {
++namespace lineage {
++namespace powershare {
++
++class PowerShare : public BnPowerShare {
++  public:
++    ndk::ScopedAStatus getMinBattery(int32_t* _aidl_return) override;
++    ndk::ScopedAStatus isEnabled(bool* _aidl_return) override;
++    ndk::ScopedAStatus setEnabled(bool enable) override;
++    ndk::ScopedAStatus setMinBattery(int32_t minBattery) override;
++};
++
++}  // namespace powershare
++}  // namespace lineage
++}  // namespace vendor
++}  // namespace aidl
+diff --git a/aidl/powershare/service.cpp b/aidl/powershare/service.cpp
+new file mode 100644
+index 0000000..b4344ca
+--- /dev/null
++++ b/aidl/powershare/service.cpp
+@@ -0,0 +1,25 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#include "PowerShare.h"
++
++#include <android-base/logging.h>
++#include <android/binder_manager.h>
++#include <android/binder_process.h>
++
++using aidl::vendor::lineage::powershare::PowerShare;
++
++int main() {
++    ABinderProcess_setThreadPoolMaxThreadCount(0);
++    std::shared_ptr<PowerShare> powershare = ndk::SharedRefBase::make<PowerShare>();
++
++    const std::string instance = std::string(PowerShare::descriptor) + "/default";
++    binder_status_t status =
++            AServiceManager_addService(powershare->asBinder().get(), instance.c_str());
++    CHECK_EQ(status, STATUS_OK);
++
++    ABinderProcess_joinThreadPool();
++    return EXIT_FAILURE;  // should not reach
++}
+diff --git a/aidl/powershare/vendor.lineage.powershare-service.xiaomi.rc b/aidl/powershare/vendor.lineage.powershare-service.xiaomi.rc
+new file mode 100644
+index 0000000..19cfdb0
+--- /dev/null
++++ b/aidl/powershare/vendor.lineage.powershare-service.xiaomi.rc
+@@ -0,0 +1,7 @@
++on boot
++    chown system system /sys/class/qcom-battery/reverse_chg_mode
++
++service vendor.powershare-hal /vendor/bin/hw/vendor.lineage.powershare-service.xiaomi
++    class hal
++    user system
++    group system
+diff --git a/aidl/powershare/vendor.lineage.powershare-service.xiaomi.xml b/aidl/powershare/vendor.lineage.powershare-service.xiaomi.xml
+new file mode 100644
+index 0000000..d831b03
+--- /dev/null
++++ b/aidl/powershare/vendor.lineage.powershare-service.xiaomi.xml
+@@ -0,0 +1,7 @@
++<manifest version="1.0" type="device">
++    <hal format="aidl">
++        <name>vendor.lineage.powershare</name>
++        <version>1</version>
++        <fqname>IPowerShare/default</fqname>
++    </hal>
++</manifest>

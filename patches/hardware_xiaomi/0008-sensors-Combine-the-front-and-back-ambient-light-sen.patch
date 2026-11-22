@@ -1,0 +1,458 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Sat, 14 Nov 2026 22:39:04 +0100
+Subject: [PATCH 08/10] sensors: Combine the front and back ambient light
+ sensors
+
+Some devices have a second ambient light sensor on the back, which stock
+combines with the front one in its framework: the brighter reading
+drives the display brightness. Expose that as a virtual light sensor for
+config_displayLightSensorType to select, ignoring the back sensor while a
+flash LED is lit and for a second after, and keep both sensors usable on
+their own.
+
+Change-Id: Ia06fcdc24e90bb7b0a2e207194fd1c6546f8edd6
+---
+ aidl/sensors/Android.bp           |   1 +
+ aidl/sensors/FusedLightSensor.cpp | 216 ++++++++++++++++++++++++++++++
+ aidl/sensors/FusedLightSensor.h   | 104 ++++++++++++++
+ aidl/sensors/HalProxy.cpp         |  37 ++++-
+ 4 files changed, 357 insertions(+), 1 deletion(-)
+ create mode 100644 aidl/sensors/FusedLightSensor.cpp
+ create mode 100644 aidl/sensors/FusedLightSensor.h
+
+diff --git a/aidl/sensors/Android.bp b/aidl/sensors/Android.bp
+index 0e7b4e2..692c953 100644
+--- a/aidl/sensors/Android.bp
++++ b/aidl/sensors/Android.bp
+@@ -33,6 +33,7 @@ cc_binary {
+         "service.cpp",
+         "HalProxy.cpp",
+         "HalProxyCallback.cpp",
++        "FusedLightSensor.cpp",
+     ],
+     header_libs: [
+         "android.hardware.sensors@2.X-multihal.header",
+diff --git a/aidl/sensors/FusedLightSensor.cpp b/aidl/sensors/FusedLightSensor.cpp
+new file mode 100644
+index 0000000..4dc7be2
+--- /dev/null
++++ b/aidl/sensors/FusedLightSensor.cpp
+@@ -0,0 +1,216 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#define LOG_TAG "FusedLightSensor"
++
++#include "FusedLightSensor.h"
++
++#include <android-base/file.h>
++#include <android-base/logging.h>
++#include <android-base/strings.h>
++
++#include <dirent.h>
++
++#include <algorithm>
++#include <memory>
++
++namespace android {
++namespace hardware {
++namespace sensors {
++namespace V2_1 {
++namespace implementation {
++
++using ::android::base::ReadFileToString;
++using ::android::base::StartsWith;
++using ::android::base::Trim;
++using V1_0::MetaDataEventType;
++using V1_0::Result;
++using V1_0::SensorFlagBits;
++
++namespace {
++
++constexpr const char* kBackLightType = "xiaomi.sensor.back_lux";
++constexpr const char* kLedsDir = "/sys/class/leds";
++
++bool isWakeUp(const SensorInfo& sensor) {
++    return sensor.flags & static_cast<uint32_t>(SensorFlagBits::WAKE_UP);
++}
++
++}  // namespace
++
++void FusedLightSensor::addTo(std::map<int32_t, SensorInfo>& sensors, ActivateFn activate,
++                             BatchFn batch) {
++    const SensorInfo* front = nullptr;
++    const SensorInfo* back = nullptr;
++    for (const auto& [handle, sensor] : sensors) {
++        if (isWakeUp(sensor)) continue;
++        if (!front && sensor.type == SensorType::LIGHT) front = &sensor;
++        if (!back && sensor.typeAsString == kBackLightType) back = &sensor;
++    }
++    if (!front || !back) return;
++
++    SensorInfo fused = *front;
++    fused.sensorHandle = kHandle;
++    fused.name = "Fused Ambient Light Sensor";
++    fused.vendor = "The LineageOS Project";
++    fused.version = 1;
++    fused.type = static_cast<SensorType>(kType);
++    fused.typeAsString = kStringType;
++    fused.maxRange = std::max(front->maxRange, back->maxRange);
++    fused.power = front->power + back->power;
++    fused.minDelay = std::max(front->minDelay, back->minDelay);
++    fused.fifoReservedEventCount = 0;
++    fused.fifoMaxEventCount = 0;
++    fused.flags &= ~static_cast<uint32_t>(SensorFlagBits::MASK_DIRECT_REPORT |
++                                          SensorFlagBits::MASK_DIRECT_CHANNEL);
++
++    LOG(INFO) << "Fusing " << front->name << " and " << back->name;
++
++    mFront.handle = front->sensorHandle;
++    mBack.handle = back->sensorHandle;
++    mActivateSource = std::move(activate);
++    mBatchSource = std::move(batch);
++    sensors[kHandle] = fused;
++
++    if (std::unique_ptr<DIR, decltype(&closedir)> dir(opendir(kLedsDir), closedir); dir) {
++        while (struct dirent* entry = readdir(dir.get())) {
++            std::string name = entry->d_name;
++            if (StartsWith(name, "led:flash_") || StartsWith(name, "led:torch_")) {
++                mFlashLeds.push_back(std::string(kLedsDir) + "/" + name + "/brightness");
++            }
++        }
++    }
++    if (mFlashLeds.empty()) {
++        LOG(WARNING) << "No flash LEDs found, the back sensor will see the flash";
++    }
++
++    mEnabled = true;
++}
++
++// Configures a source for the union of its own request and the virtual sensor's
++Result FusedLightSensor::configure(const Source& source, bool requested) {
++    if (!requested && !mActive) return mActivateSource(source.handle, false);
++
++    int64_t period = std::min(requested ? source.periodNs : INT64_MAX,
++                              mActive ? mPeriodNs : INT64_MAX);
++    if (period != INT64_MAX) {
++        Result result = mBatchSource(source.handle, period, mActive ? 0 : source.latencyNs);
++        if (result != Result::OK) return result;
++    }
++    return mActivateSource(source.handle, true);
++}
++
++Result FusedLightSensor::activate(int32_t handle, bool enabled) {
++    std::lock_guard<std::mutex> configLock(mConfigLock);
++
++    if (handle == kHandle) {
++        mActive = enabled;
++        {
++            std::lock_guard<std::mutex> lock(mLock);
++            mFusing = enabled;
++            mOutput.reset();
++        }
++        Result front = configure(mFront, mFront.requested);
++        Result back = configure(mBack, mBack.requested);
++        return front != Result::OK ? front : back;
++    }
++
++    Source& source = handle == mFront.handle ? mFront : mBack;
++    {
++        std::lock_guard<std::mutex> lock(mLock);
++        source.requested = enabled;
++    }
++    return configure(source, enabled);
++}
++
++Result FusedLightSensor::batch(int32_t handle, int64_t periodNs, int64_t latencyNs) {
++    std::lock_guard<std::mutex> configLock(mConfigLock);
++
++    if (handle == kHandle) {
++        mPeriodNs = periodNs;
++        if (!mActive) return Result::OK;
++        Result front = configure(mFront, mFront.requested);
++        Result back = configure(mBack, mBack.requested);
++        return front != Result::OK ? front : back;
++    }
++
++    // Clients batch before activating, so this applies whether or not the
++    // source is requested yet
++    Source& source = handle == mFront.handle ? mFront : mBack;
++    source.periodNs = periodNs;
++    source.latencyNs = latencyNs;
++    int64_t period = mActive ? std::min(periodNs, mPeriodNs) : periodNs;
++    return mBatchSource(handle, period, mActive ? 0 : latencyNs);
++}
++
++Event FusedLightSensor::flushCompleteEvent() const {
++    Event event = {};
++    event.sensorHandle = kHandle;
++    event.sensorType = SensorType::META_DATA;
++    event.u.meta.what = MetaDataEventType::META_DATA_FLUSH_COMPLETE;
++    return event;
++}
++
++bool FusedLightSensor::flashLit() const {
++    for (const auto& path : mFlashLeds) {
++        std::string value;
++        if (ReadFileToString(path, &value) && Trim(value) != "0") return true;
++    }
++    return false;
++}
++
++std::optional<float> FusedLightSensor::fusedLuxLocked(int64_t now) {
++    if (flashLit()) mFlashLitNs = now;
++    bool useBack = mBack.hasValue && (!mFlashLitNs || now - *mFlashLitNs > kFlashHoldOffNs);
++
++    if (mFront.hasValue && useBack) return std::max(mFront.lux, mBack.lux);
++    if (mFront.hasValue) return mFront.lux;
++    if (useBack) return mBack.lux;
++    return std::nullopt;
++}
++
++std::vector<Event> FusedLightSensor::process(const std::vector<Event>& events) {
++    std::lock_guard<std::mutex> lock(mLock);
++    std::vector<Event> out;
++    out.reserve(events.size() + 1);
++    int64_t timestamp = 0;
++
++    for (const Event& event : events) {
++        Source* source = event.sensorHandle == mFront.handle  ? &mFront
++                         : event.sensorHandle == mBack.handle ? &mBack
++                                                              : nullptr;
++        if (!source || event.sensorType == SensorType::META_DATA) {
++            out.push_back(event);
++            continue;
++        }
++
++        // Both sensors report lux in the first value
++        source->lux = event.u.data[0];
++        source->hasValue = true;
++        timestamp = event.timestamp;
++        if (source->requested) out.push_back(event);
++    }
++
++    if (mFusing && timestamp) {
++        std::optional<float> lux = fusedLuxLocked(timestamp);
++        if (lux && lux != mOutput) {
++            Event event = {};
++            event.timestamp = timestamp;
++            event.sensorHandle = kHandle;
++            event.sensorType = static_cast<SensorType>(kType);
++            event.u.data[0] = *lux;
++            out.push_back(event);
++            mOutput = lux;
++        }
++    }
++
++    return out;
++}
++
++}  // namespace implementation
++}  // namespace V2_1
++}  // namespace sensors
++}  // namespace hardware
++}  // namespace android
+diff --git a/aidl/sensors/FusedLightSensor.h b/aidl/sensors/FusedLightSensor.h
+new file mode 100644
+index 0000000..18de1be
+--- /dev/null
++++ b/aidl/sensors/FusedLightSensor.h
+@@ -0,0 +1,104 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#pragma once
++
++#include <android/hardware/sensors/2.1/types.h>
++
++#include <cstdint>
++#include <functional>
++#include <map>
++#include <mutex>
++#include <optional>
++#include <string>
++#include <vector>
++
++namespace android {
++namespace hardware {
++namespace sensors {
++namespace V2_1 {
++namespace implementation {
++
++/*
++ * Some Xiaomi devices have a second ambient light sensor on the back, next to
++ * the cameras. Stock combines both in its framework: the brighter of the two
++ * readings drives the display brightness, so a shadow over the front sensor
++ * doesn't dim the screen in a bright room.
++ *
++ * This exposes that combination as a virtual non-wake-up light sensor, which
++ * the framework uses when config_displayLightSensorType selects it. Readings
++ * of the back sensor are ignored while a flash LED is lit and for a while
++ * after, because the flash shines straight into it.
++ *
++ * The front and back sensors stay available to other clients: requests for
++ * them are tracked separately from the ones of the virtual sensor, and the
++ * sensors are configured with the union of both.
++ */
++class FusedLightSensor {
++  public:
++    static constexpr const char* kStringType = "org.lineageos.sensor.fused_light";
++
++    using ActivateFn = std::function<V1_0::Result(int32_t handle, bool enabled)>;
++    using BatchFn =
++            std::function<V1_0::Result(int32_t handle, int64_t periodNs, int64_t latencyNs)>;
++
++    // Adds the virtual sensor to the list if both light sensors are in it. The
++    // functions configure the sources in their sub-HAL.
++    void addTo(std::map<int32_t, SensorInfo>& sensors, ActivateFn activate, BatchFn batch);
++
++    // Whether requests for the handle have to go through this class.
++    bool handles(int32_t handle) const {
++        return mEnabled && (handle == kHandle || handle == mFront.handle || handle == mBack.handle);
++    }
++    bool isFused(int32_t handle) const { return mEnabled && handle == kHandle; }
++
++    V1_0::Result activate(int32_t handle, bool enabled);
++    V1_0::Result batch(int32_t handle, int64_t periodNs, int64_t latencyNs);
++    Event flushCompleteEvent() const;
++
++    // Consumes the events of the sources: drops the ones nobody asked for and
++    // adds the virtual sensor's readings.
++    std::vector<Event> process(const std::vector<Event>& events);
++
++  private:
++    // A sub-HAL index of 0xff, which no sub-HAL has
++    static constexpr int32_t kHandle = static_cast<int32_t>(0xff000001);
++    static constexpr int32_t kType = 0x10000 + 0x4c58;  // DEVICE_PRIVATE_BASE + "LX"
++    static constexpr int64_t kFlashHoldOffNs = 1000000000LL;
++
++    struct Source {
++        int32_t handle = -1;
++        bool requested = false;  // by a client of the source itself
++        int64_t periodNs = INT64_MAX;
++        int64_t latencyNs = 0;
++        bool hasValue = false;
++        float lux = 0;
++    };
++
++    V1_0::Result configure(const Source& source, bool requested);
++    bool flashLit() const;
++    std::optional<float> fusedLuxLocked(int64_t now);
++
++    bool mEnabled = false;
++    ActivateFn mActivateSource;
++    BatchFn mBatchSource;
++    std::vector<std::string> mFlashLeds;
++
++    std::mutex mConfigLock;  // serializes requests
++    bool mActive = false;
++    int64_t mPeriodNs = INT64_MAX;
++
++    std::mutex mLock;  // guards the state that process() uses
++    Source mFront, mBack;
++    bool mFusing = false;
++    std::optional<float> mOutput;
++    std::optional<int64_t> mFlashLitNs;  // last time a flash LED was seen lit
++};
++
++}  // namespace implementation
++}  // namespace V2_1
++}  // namespace sensors
++}  // namespace hardware
++}  // namespace android
+diff --git a/aidl/sensors/HalProxy.cpp b/aidl/sensors/HalProxy.cpp
+index 44c16d8..c7c15fd 100644
+--- a/aidl/sensors/HalProxy.cpp
++++ b/aidl/sensors/HalProxy.cpp
+@@ -16,6 +16,8 @@
+ 
+ #include "HalProxy.h"
+ 
++#include "FusedLightSensor.h"
++
+ #include <android/hardware/sensors/2.0/types.h>
+ 
+ #include <android-base/file.h>
+@@ -46,6 +48,9 @@ typedef V2_1::implementation::ISensorsSubHal*(SensorsHalGetSubHalV2_1Func)(uint3
+ 
+ static constexpr int32_t kBitsAfterSubHalIndex = 24;
+ 
++// There is one HalProxy per process, which owns the fused light sensor
++static FusedLightSensor sFusedLight;
++
+ /**
+  * Set the subhal index as first byte of sensor handle and return this modified version.
+  *
+@@ -179,6 +184,9 @@ Return<Result> HalProxy::setOperationMode(OperationMode mode) {
+ }
+ 
+ Return<Result> HalProxy::activate(int32_t sensorHandle, bool enabled) {
++    if (sFusedLight.handles(sensorHandle)) {
++        return sFusedLight.activate(sensorHandle, enabled);
++    }
+     if (!isSubHalIndexValid(sensorHandle)) {
+         return Result::BAD_VALUE;
+     }
+@@ -296,6 +304,9 @@ Return<Result> HalProxy::initializeCommon(
+ 
+ Return<Result> HalProxy::batch(int32_t sensorHandle, int64_t samplingPeriodNs,
+                                int64_t maxReportLatencyNs) {
++    if (sFusedLight.handles(sensorHandle)) {
++        return sFusedLight.batch(sensorHandle, samplingPeriodNs, maxReportLatencyNs);
++    }
+     if (!isSubHalIndexValid(sensorHandle)) {
+         return Result::BAD_VALUE;
+     }
+@@ -304,6 +315,15 @@ Return<Result> HalProxy::batch(int32_t sensorHandle, int64_t samplingPeriodNs,
+ }
+ 
+ Return<Result> HalProxy::flush(int32_t sensorHandle) {
++    if (sFusedLight.isFused(sensorHandle)) {
++        // It has no FIFO, so it's flushed right away
++        sp<V2_0::implementation::HalProxyCallbackBase> callback =
++                new V2_0::implementation::HalProxyCallbackBase(
++                        this, this, static_cast<uint32_t>(sensorHandle) >> kBitsAfterSubHalIndex);
++        callback->postEvents({sFusedLight.flushCompleteEvent()},
++                             callback->createScopedWakelock(false /* lock */));
++        return Result::OK;
++    }
+     if (!isSubHalIndexValid(sensorHandle)) {
+         return Result::BAD_VALUE;
+     }
+@@ -530,6 +550,17 @@ void HalProxy::initializeSensorList() {
+                   mSubHalList[subHalIndex]->getName().c_str());
+         }
+     }
++
++    sFusedLight.addTo(
++            mSensors,
++            [this](int32_t handle, bool enabled) {
++                return getSubHalForSensorHandle(handle)->activate(clearSubHalIndex(handle),
++                                                                  enabled);
++            },
++            [this](int32_t handle, int64_t periodNs, int64_t latencyNs) {
++                return getSubHalForSensorHandle(handle)->batch(clearSubHalIndex(handle), periodNs,
++                                                               latencyNs);
++            });
+ }
+ 
+ void* HalProxy::getHandleForSubHalSharedObject(const std::string& filename) {
+@@ -684,8 +715,12 @@ void HalProxy::resetSharedWakelock() {
+     mWakelockTimeoutResetTime = getTimeNow();
+ }
+ 
+-void HalProxy::postEventsToMessageQueue(const std::vector<Event>& events, size_t numWakeupEvents,
++void HalProxy::postEventsToMessageQueue(const std::vector<Event>& sourceEvents,
++                                        size_t numWakeupEvents,
+                                         V2_0::implementation::ScopedWakelock wakelock) {
++    // The fused light sensor only adds and drops non-wake-up events
++    const std::vector<Event> events = sFusedLight.process(sourceEvents);
++    if (events.empty()) return;
+     size_t numToWrite = 0;
+     std::lock_guard<std::mutex> lock(mEventQueueWriteMutex);
+     if (wakelock.isLocked()) {

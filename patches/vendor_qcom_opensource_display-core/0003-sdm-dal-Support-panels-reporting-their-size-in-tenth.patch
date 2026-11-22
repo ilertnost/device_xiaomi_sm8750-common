@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Thu, 12 Nov 2026 01:42:19 +0100
+Subject: [PATCH 3/3] sdm: dal: Support panels reporting their size in tenths
+ of a millimetre
+
+Some OEM kernels report the physical size of the built-in DSI panel in
+tenths of a millimetre, which made the display report a tenth of its
+real DPI. Scale it back when panel_dimensions_in_tenth_mm is set.
+
+Change-Id: I4364cb69ba261b906ee4746923afbc08360961c9
+---
+ sdm/libs/dal/hw_device_drm.cpp | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/sdm/libs/dal/hw_device_drm.cpp b/sdm/libs/dal/hw_device_drm.cpp
+index 6353788..c37ed4a 100644
+--- a/sdm/libs/dal/hw_device_drm.cpp
++++ b/sdm/libs/dal/hw_device_drm.cpp
+@@ -958,15 +958,24 @@ DisplayError HWDeviceDRM::PopulateDisplayAttributes(uint32_t index) {
+   // Driver can expose list of dynamic pixel clocks, userspace needs to support dynamic change.
+   display_attributes_[index].clock_khz = mode.clock;
+ 
++  float panel_width_mm = FLOAT(mm_width);
++  float panel_height_mm = FLOAT(mm_height);
++
+   // If driver doesn't return panel width/height information, default to 320 dpi
+   if (INT(mm_width) <= 0 || INT(mm_height) <= 0) {
+-    mm_width  = UINT32(((FLOAT(mode.hdisplay) * 25.4f) / 320.0f) + 0.5f);
+-    mm_height = UINT32(((FLOAT(mode.vdisplay) * 25.4f) / 320.0f) + 0.5f);
++    panel_width_mm = UINT32(((FLOAT(mode.hdisplay) * 25.4f) / 320.0f) + 0.5f);
++    panel_height_mm = UINT32(((FLOAT(mode.vdisplay) * 25.4f) / 320.0f) + 0.5f);
+     DLOGW("Driver doesn't report panel physical width and height - defaulting to 320dpi");
++#ifdef PANEL_DIMENSIONS_IN_TENTH_MM
++  } else if (connector_info_.type == DRM_MODE_CONNECTOR_DSI) {
++    // Built-in panels report their physical size in tenths of a millimetre
++    panel_width_mm /= 10.0f;
++    panel_height_mm /= 10.0f;
++#endif
+   }
+ 
+-  display_attributes_[index].x_dpi = (FLOAT(mode.hdisplay) * 25.4f) / FLOAT(mm_width);
+-  display_attributes_[index].y_dpi = (FLOAT(mode.vdisplay) * 25.4f) / FLOAT(mm_height);
++  display_attributes_[index].x_dpi = (FLOAT(mode.hdisplay) * 25.4f) / panel_width_mm;
++  display_attributes_[index].y_dpi = (FLOAT(mode.vdisplay) * 25.4f) / panel_height_mm;
+   SetTopology(topology, &display_attributes_[index].topology);
+   SetTopologySplit(display_attributes_[index].topology,
+                    &display_attributes_[index].topology_num_split);

@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Wed, 11 Nov 2026 17:09:00 +0100
+Subject: [PATCH] display-intf: Expose display attributes by hardware config
+ index
+
+GetConfigCount() counts every mode the display reports, while
+GetDisplayAttributes() only knows the configurations exposed to the
+client, which skip duplicated modes. Add an accessor that uses the
+GetConfigCount() index space.
+
+Change-Id: I0fa0b05160481ec4e15f381c6344943a02a65b45
+---
+ sdmclient/sdm_display_intf_lifecycle.h | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/sdmclient/sdm_display_intf_lifecycle.h b/sdmclient/sdm_display_intf_lifecycle.h
+index 01f7010..ecb26dc 100644
+--- a/sdmclient/sdm_display_intf_lifecycle.h
++++ b/sdmclient/sdm_display_intf_lifecycle.h
+@@ -147,6 +147,21 @@ public:
+ 
+   virtual DisplayError GetConfigCount(uint64_t disp_id, uint32_t *count) = 0;
+ 
++  /**
++   * Get the attributes of a configuration of the given display, indexed like
++   * GetConfigCount(), i.e. counting every mode the display reports, including
++   * the ones that are exposed to the client as a single configuration.
++   *
++   * @param disp_id: The id of the specified display
++   * @param config: The configuration index, from 0 to GetConfigCount() - 1
++   * @param attributes: The attributes of the configuration
++   *
++   * @exception: kErrorNotSupported if disp_id or config is not found
++   */
++  virtual DisplayError GetDisplayAttributesForConfig(
++      uint64_t disp_id, int32_t config,
++      DisplayConfigVariableInfo *attributes) = 0;
++
+   virtual DisplayError TryDrawMethod(Display display,
+                                      DisplayDrawMethod drawMethod) = 0;
+ 

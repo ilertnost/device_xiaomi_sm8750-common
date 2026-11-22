@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Thu, 12 Nov 2026 00:33:53 +0100
+Subject: [PATCH 04/10] fingerprint: Don't advertise a sensor without a HAL
+ module
+
+When no HAL module opens, the service kept advertising the sensor and
+crashed dereferencing the missing device as soon as the framework
+created a session, then again on every restart. Report no sensors
+instead, so the framework never creates one, and initialize the device
+and UDFPS handler pointers, which were read uninitialized.
+
+Change-Id: Ic7aef5d1789a9c5658ef96504d06f0663cbd0adc
+---
+ aidl/fingerprint/Fingerprint.cpp | 7 +++++++
+ aidl/fingerprint/Fingerprint.h   | 6 +++---
+ 2 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/aidl/fingerprint/Fingerprint.cpp b/aidl/fingerprint/Fingerprint.cpp
+index a4b9bfe..a2aacd5 100644
+--- a/aidl/fingerprint/Fingerprint.cpp
++++ b/aidl/fingerprint/Fingerprint.cpp
+@@ -226,6 +226,13 @@ void Fingerprint::notify(const fingerprint_msg_t* msg) {
+ }
+ 
+ ndk::ScopedAStatus Fingerprint::getSensorProps(std::vector<SensorProps>* out) {
++    // Without a HAL module there is no sensor, and sessions can't be created.
++    if (!mDevice) {
++        ALOGE("No fingerprint HAL module, not advertising a sensor");
++        *out = {};
++        return ndk::ScopedAStatus::ok();
++    }
++
+     std::vector<common::ComponentInfo> componentInfo = {
+             {HW_COMPONENT_ID, HW_VERSION, FW_VERSION, SERIAL_NUMBER, "" /* softwareVersion */},
+             {SW_COMPONENT_ID, "" /* hardwareVersion */, "" /* firmwareVersion */,
+diff --git a/aidl/fingerprint/Fingerprint.h b/aidl/fingerprint/Fingerprint.h
+index 6117fb6..82378d8 100644
+--- a/aidl/fingerprint/Fingerprint.h
++++ b/aidl/fingerprint/Fingerprint.h
+@@ -41,9 +41,9 @@ class Fingerprint : public BnFingerprint {
+     LockoutTracker mLockoutTracker;
+     FingerprintSensorType mSensorType;
+ 
+-    fingerprint_device_t* mDevice;
+-    UdfpsHandlerFactory* mUdfpsHandlerFactory;
+-    UdfpsHandler* mUdfpsHandler;
++    fingerprint_device_t* mDevice = nullptr;
++    UdfpsHandlerFactory* mUdfpsHandlerFactory = nullptr;
++    UdfpsHandler* mUdfpsHandler = nullptr;
+ };
+ 
+ }  // namespace aidl::android::hardware::biometrics::fingerprint

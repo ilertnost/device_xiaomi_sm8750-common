@@ -1,0 +1,211 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Wed, 11 Nov 2026 18:27:14 +0100
+Subject: [PATCH 2/3] sdmclient: Notify Xiaomi's light sensor of primary
+ display frames
+
+Xiaomi's under-display light sensor subtracts the light emitted by the
+panel above it, which it measures from a concurrent writeback of the
+screen. Xiaomi's composer requests one through libclient2slpi.notifier
+after every frame of the primary display when
+vendor.display.enable_cwb_notify_sensor is set.
+
+Do the same on devices that set the xiaomi_rgb_notifier soong variable,
+loading the notifier at runtime so the composer does not link against a
+device blob.
+
+Change-Id: If1e7f26e9b735d7403d40621a93670b5ad27b0d5
+---
+ include/display_properties.h      |  1 +
+ sdmclient/sdm_display_builtin.cpp | 14 +++++++
+ sdmclient/sdm_display_builtin.h   |  4 ++
+ sdmclient/xiaomi_rgb_notifier.cpp | 62 +++++++++++++++++++++++++++++++
+ sdmclient/xiaomi_rgb_notifier.h   | 44 ++++++++++++++++++++++
+ 5 files changed, 125 insertions(+)
+ create mode 100644 sdmclient/xiaomi_rgb_notifier.cpp
+ create mode 100644 sdmclient/xiaomi_rgb_notifier.h
+
+diff --git a/include/display_properties.h b/include/display_properties.h
+index b31f701..bd0317d 100644
+--- a/include/display_properties.h
++++ b/include/display_properties.h
+@@ -206,6 +206,7 @@
+ 
+ // Enable IWE
+ #define ENABLE_INLINE_WRITEBACK              DISPLAY_PROP("enable_inline_writeback")
++#define ENABLE_CWB_NOTIFY_SENSOR             DISPLAY_PROP("enable_cwb_notify_sensor")
+ 
+ // Configuration to reserve the writeback blocks for specific usage like CWB, IWE or WFD
+ #define RESERVED_WRITEBACK_CONFIG            DISPLAY_PROP("reserved_writeback_config")
+diff --git a/sdmclient/sdm_display_builtin.cpp b/sdmclient/sdm_display_builtin.cpp
+index f17b60d..43bc45c 100644
+--- a/sdmclient/sdm_display_builtin.cpp
++++ b/sdmclient/sdm_display_builtin.cpp
+@@ -160,6 +160,14 @@ DisplayError SDMDisplayBuiltIn::Init() {
+     if (enable_poms_during_doze_) {
+       DLOGI("Enable POMS during Doze mode %" PRIu64, id_);
+     }
++
++#ifdef XIAOMI_RGB_NOTIFIER
++    value = 0;
++    SDMDebugHandler::Get()->GetProperty(ENABLE_CWB_NOTIFY_SENSOR, &value);
++    if (value == 1) {
++      rgb_notifier_ = XiaomiRGBNotifier::Create();
++    }
++#endif
+   }
+ 
+   SDMDebugHandler::Get()->GetProperty(ENABLE_PERF_HINT_LARGE_COMP_CYCLE,
+@@ -1585,6 +1593,12 @@ DisplayError SDMDisplayBuiltIn::CommitOrPrepare(
+     HandleLargeCompositionHint(!needs_hint);
+   }
+ 
++#ifdef XIAOMI_RGB_NOTIFIER
++  if (rgb_notifier_ && current_power_mode_ == SDMPowerMode::POWER_MODE_ON) {
++    rgb_notifier_->SendFrameUpdate(is_primary_);
++  }
++#endif
++
+   prepare_phase_ = false;
+ 
+   // Need a commit call to flush the dsi dynamic clock
+diff --git a/sdmclient/sdm_display_builtin.h b/sdmclient/sdm_display_builtin.h
+index 986bcd1..15074cd 100644
+--- a/sdmclient/sdm_display_builtin.h
++++ b/sdmclient/sdm_display_builtin.h
+@@ -41,6 +41,7 @@
+ 
+ #include "cpuhint.h"
+ #include "sdm_display.h"
++#include "xiaomi_rgb_notifier.h"
+ #include "sdm_layers.h"
+ #include "utils/constants.h"
+ #include "utils/sync_task.h"
+@@ -192,6 +193,9 @@ private:
+  bool enable_poms_during_doze_ = false;
+ 
+  bool is_primary_ = false;
++#ifdef XIAOMI_RGB_NOTIFIER
++  std::unique_ptr<XiaomiRGBNotifier> rgb_notifier_;
++#endif
+  bool disable_layer_stitch_ = true;
+  SDMLayer *stitch_target_ = nullptr;
+  SyncTask<LayerStitchTaskCode> layer_stitch_task_;
+diff --git a/sdmclient/xiaomi_rgb_notifier.cpp b/sdmclient/xiaomi_rgb_notifier.cpp
+new file mode 100644
+index 0000000..dcdb28f
+--- /dev/null
++++ b/sdmclient/xiaomi_rgb_notifier.cpp
+@@ -0,0 +1,62 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#ifdef XIAOMI_RGB_NOTIFIER
++
++#include "xiaomi_rgb_notifier.h"
++
++#include <dlfcn.h>
++#include <utils/debug.h>
++
++#define __CLASS__ "XiaomiRGBNotifier"
++
++namespace sdm {
++
++namespace {
++
++constexpr const char *kLibrary = "libclient2slpi.notifier.so";
++
++// clientRGBNotifier::clientRGBNotifier()
++constexpr const char *kConstructor = "_ZN17clientRGBNotifierC1Ev";
++// clientRGBNotifier::SendFrameUpdateSingnal(bool)
++constexpr const char *kSendFrameUpdate = "_ZN17clientRGBNotifier22SendFrameUpdateSingnalEb";
++
++using ConstructorFn = void (*)(void *notifier);
++
++}  // namespace
++
++std::unique_ptr<XiaomiRGBNotifier> XiaomiRGBNotifier::Create() {
++  // The library starts a thread that outlives the notifier, so it stays loaded.
++  void *library = dlopen(kLibrary, RTLD_NOW);
++  if (!library) {
++    DLOGW("Failed to load %s: %s", kLibrary, dlerror());
++    return nullptr;
++  }
++
++  auto construct = reinterpret_cast<ConstructorFn>(dlsym(library, kConstructor));
++  auto send_frame_update = reinterpret_cast<SendFrameUpdateFn>(dlsym(library, kSendFrameUpdate));
++  if (!construct || !send_frame_update) {
++    DLOGW("%s does not export the notifier", kLibrary);
++    return nullptr;
++  }
++
++  // clientRGBNotifier derives from android::RefBase without adding members, and
++  // its virtual destructor releases it with operator delete once the last
++  // strong reference goes away.
++  void *storage = ::operator new(sizeof(android::RefBase));
++  construct(storage);
++  android::sp<android::RefBase> notifier = static_cast<android::RefBase *>(storage);
++
++  return std::unique_ptr<XiaomiRGBNotifier>(
++      new XiaomiRGBNotifier(std::move(notifier), send_frame_update));
++}
++
++void XiaomiRGBNotifier::SendFrameUpdate(bool is_primary) {
++  send_frame_update_(notifier_.get(), is_primary);
++}
++
++}  // namespace sdm
++
++#endif  // XIAOMI_RGB_NOTIFIER
+diff --git a/sdmclient/xiaomi_rgb_notifier.h b/sdmclient/xiaomi_rgb_notifier.h
+new file mode 100644
+index 0000000..4ad88d9
+--- /dev/null
++++ b/sdmclient/xiaomi_rgb_notifier.h
+@@ -0,0 +1,44 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#ifndef __XIAOMI_RGB_NOTIFIER_H__
++#define __XIAOMI_RGB_NOTIFIER_H__
++
++#ifdef XIAOMI_RGB_NOTIFIER
++
++#include <utils/RefBase.h>
++#include <utils/StrongPointer.h>
++
++#include <memory>
++#include <utility>
++
++namespace sdm {
++
++// Xiaomi's under-display light sensor subtracts the light emitted by the panel
++// above it, which it measures from a concurrent writeback of the screen. On
++// stock, the composer has Xiaomi's libclient2slpi.notifier request one after
++// every frame of the primary display. The library is optional and is loaded at
++// runtime, so that the composer does not link against a device blob.
++class XiaomiRGBNotifier {
++ public:
++  static std::unique_ptr<XiaomiRGBNotifier> Create();
++
++  void SendFrameUpdate(bool is_primary);
++
++ private:
++  using SendFrameUpdateFn = void (*)(void *notifier, bool is_primary);
++
++  XiaomiRGBNotifier(android::sp<android::RefBase> notifier, SendFrameUpdateFn send_frame_update)
++      : notifier_(std::move(notifier)), send_frame_update_(send_frame_update) {}
++
++  android::sp<android::RefBase> notifier_;
++  SendFrameUpdateFn send_frame_update_;
++};
++
++}  // namespace sdm
++
++#endif  // XIAOMI_RGB_NOTIFIER
++
++#endif  // __XIAOMI_RGB_NOTIFIER_H__

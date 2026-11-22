@@ -1,0 +1,373 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Thu, 12 Nov 2026 18:58:01 +0100
+Subject: [PATCH 06/10] ir: Add a HAL for the SPI IR transmitter
+
+Some Xiaomi devices drive their IR LED from a SPI controller through
+/dev/ir_spi instead of a lirc device. The kernel clocks the buffer it is
+given out to the LED one bit per clock, so the HAL renders each burst
+into that bitmap, with the same carrier, duty cycle and timing as
+Xiaomi's consumerir HAL.
+
+Change-Id: Idc3ad5879a9a538d8ec4c67b3f5d731d432ba556
+---
+ aidl/ir/Android.bp                            | 22 +++++
+ aidl/ir/ConsumerIr.cpp                        | 84 ++++++++++++++++
+ aidl/ir/ConsumerIr.h                          | 21 ++++
+ aidl/ir/SpiPattern.cpp                        | 96 +++++++++++++++++++
+ aidl/ir/SpiPattern.h                          | 24 +++++
+ aidl/ir/android.hardware.ir-service.xiaomi.rc | 10 ++
+ .../ir/android.hardware.ir-service.xiaomi.xml | 11 +++
+ aidl/ir/service.cpp                           | 26 +++++
+ 8 files changed, 294 insertions(+)
+ create mode 100644 aidl/ir/Android.bp
+ create mode 100644 aidl/ir/ConsumerIr.cpp
+ create mode 100644 aidl/ir/ConsumerIr.h
+ create mode 100644 aidl/ir/SpiPattern.cpp
+ create mode 100644 aidl/ir/SpiPattern.h
+ create mode 100644 aidl/ir/android.hardware.ir-service.xiaomi.rc
+ create mode 100644 aidl/ir/android.hardware.ir-service.xiaomi.xml
+ create mode 100644 aidl/ir/service.cpp
+
+diff --git a/aidl/ir/Android.bp b/aidl/ir/Android.bp
+new file mode 100644
+index 0000000..6b3520f
+--- /dev/null
++++ b/aidl/ir/Android.bp
+@@ -0,0 +1,22 @@
++//
++// SPDX-FileCopyrightText: The LineageOS Project
++// SPDX-License-Identifier: Apache-2.0
++//
++
++cc_binary {
++    name: "android.hardware.ir-service.xiaomi",
++    relative_install_path: "hw",
++    init_rc: ["android.hardware.ir-service.xiaomi.rc"],
++    vintf_fragments: ["android.hardware.ir-service.xiaomi.xml"],
++    srcs: [
++        "ConsumerIr.cpp",
++        "SpiPattern.cpp",
++        "service.cpp",
++    ],
++    shared_libs: [
++        "libbase",
++        "libbinder_ndk",
++        "android.hardware.ir-V1-ndk",
++    ],
++    vendor: true,
++}
+diff --git a/aidl/ir/ConsumerIr.cpp b/aidl/ir/ConsumerIr.cpp
+new file mode 100644
+index 0000000..813f81f
+--- /dev/null
++++ b/aidl/ir/ConsumerIr.cpp
+@@ -0,0 +1,84 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#define LOG_TAG "android.hardware.ir-service.xiaomi"
++
++#include "ConsumerIr.h"
++
++#include <android-base/logging.h>
++#include <android-base/unique_fd.h>
++#include <fcntl.h>
++#include <sys/ioctl.h>
++#include <unistd.h>
++
++#include "SpiPattern.h"
++
++using android::base::unique_fd;
++
++namespace aidl::android::hardware::ir {
++
++namespace {
++
++constexpr char kIrDevice[] = "/dev/ir_spi";
++
++// Sets the length in bytes of the burst the next write() carries.
++constexpr unsigned long kIrSpiSetLength = _IOW('i', 0x11, uint32_t);
++
++// What Xiaomi's HAL advertises. Any other carrier is sent too, as closely as
++// the SPI clock divides down to it.
++const std::vector<ConsumerIrFreqRange> kCarrierFreqs = {
++        {.minHz = 30000, .maxHz = 30000}, {.minHz = 33000, .maxHz = 33000},
++        {.minHz = 36000, .maxHz = 36000}, {.minHz = 38000, .maxHz = 38000},
++        {.minHz = 40000, .maxHz = 40000}, {.minHz = 56000, .maxHz = 56000},
++};
++
++}  // namespace
++
++ndk::ScopedAStatus ConsumerIr::getCarrierFreqs(std::vector<ConsumerIrFreqRange>* _aidl_return) {
++    *_aidl_return = kCarrierFreqs;
++    return ndk::ScopedAStatus::ok();
++}
++
++ndk::ScopedAStatus ConsumerIr::transmit(int32_t carrierFreqHz,
++                                        const std::vector<int32_t>& pattern) {
++    if (carrierFreqHz <= 0) {
++        LOG(ERROR) << "Unsupported carrier " << carrierFreqHz;
++        return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
++    }
++
++    auto bitmap = RenderPattern(carrierFreqHz, pattern);
++    if (!bitmap) {
++        LOG(ERROR) << "Cannot send a pattern of " << pattern.size() << " entries";
++        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
++    }
++    if (bitmap->empty()) {
++        return ndk::ScopedAStatus::ok();
++    }
++
++    // The driver forgets the burst length when the last user closes it, and
++    // resizing it while it is set is not safe, so every burst opens afresh.
++    unique_fd fd(TEMP_FAILURE_RETRY(open(kIrDevice, O_WRONLY | O_CLOEXEC)));
++    if (!fd.ok()) {
++        PLOG(ERROR) << "Failed to open " << kIrDevice;
++        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
++    }
++
++    uint32_t length = bitmap->size() * sizeof(uint32_t);
++    if (ioctl(fd.get(), kIrSpiSetLength, &length) < 0) {
++        PLOG(ERROR) << "Failed to set the burst length to " << length;
++        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
++    }
++
++    // Returns once the burst has been clocked out.
++    ssize_t written = TEMP_FAILURE_RETRY(write(fd.get(), bitmap->data(), length));
++    if (written != static_cast<ssize_t>(length)) {
++        PLOG(ERROR) << "Failed to send " << length << " bytes, sent " << written;
++        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
++    }
++
++    return ndk::ScopedAStatus::ok();
++}
++
++}  // namespace aidl::android::hardware::ir
+diff --git a/aidl/ir/ConsumerIr.h b/aidl/ir/ConsumerIr.h
+new file mode 100644
+index 0000000..644d110
+--- /dev/null
++++ b/aidl/ir/ConsumerIr.h
+@@ -0,0 +1,21 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#pragma once
++
++#include <aidl/android/hardware/ir/BnConsumerIr.h>
++
++namespace aidl::android::hardware::ir {
++
++// Drives the IR LED Xiaomi hangs off a SPI bus: bursts are rendered into a
++// bitmap here and clocked out by the kernel through /dev/ir_spi.
++class ConsumerIr : public BnConsumerIr {
++  public:
++    ndk::ScopedAStatus getCarrierFreqs(std::vector<ConsumerIrFreqRange>* _aidl_return) override;
++    ndk::ScopedAStatus transmit(int32_t carrierFreqHz,
++                                const std::vector<int32_t>& pattern) override;
++};
++
++}  // namespace aidl::android::hardware::ir
+diff --git a/aidl/ir/SpiPattern.cpp b/aidl/ir/SpiPattern.cpp
+new file mode 100644
+index 0000000..ed4dce3
+--- /dev/null
++++ b/aidl/ir/SpiPattern.cpp
+@@ -0,0 +1,96 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#include "SpiPattern.h"
++
++namespace aidl::android::hardware::ir {
++
++namespace {
++
++// ir-spi.ko clocks the LED at this rate, one bit per clock.
++constexpr uint64_t kSpiClockHz = 1'920'000;
++constexpr uint64_t kUsPerSecond = 1'000'000;
++constexpr uint32_t kBitsPerWord = 32;
++
++// Every slice ends this much early. Xiaomi's HAL does this, and it is kept so
++// that the bursts sent are the ones the stock HAL sends.
++constexpr int64_t kEdgeAdvanceUs = 5;
++
++// The longest burst Xiaomi's HAL sends: one more microsecond and its 32-bit
++// count of clock cycles overflows.
++constexpr int64_t kMaxDurationUs = 1'118'482;
++
++// The LED is lit for the first 2/5 of each carrier period.
++constexpr uint32_t kDutyCycleNum = 2;
++constexpr uint32_t kDutyCycleDen = 5;
++
++// The burst is padded with silence to a multiple of this many bytes.
++constexpr size_t kLengthAlignment = 1024;
++
++}  // namespace
++
++std::optional<std::vector<uint32_t>> RenderPattern(int32_t carrierFreqHz,
++                                                   const std::vector<int32_t>& pattern) {
++    if (carrierFreqHz <= 0 || pattern.empty()) {
++        return std::nullopt;
++    }
++
++    // When each slice ends, in microseconds from the start of the burst.
++    std::vector<int64_t> ends;
++    ends.reserve(pattern.size());
++
++    int64_t end = -kEdgeAdvanceUs;
++    for (int32_t duration : pattern) {
++        if (duration <= 0) {
++            return std::nullopt;
++        }
++        end += duration;
++        ends.push_back(end);
++    }
++
++    if (end < 0 || end >= kMaxDurationUs) {
++        return std::nullopt;
++    }
++
++    const uint64_t bits = end * kSpiClockHz / kUsPerSecond;
++    size_t bytes = (bits + 7) / 8;
++    bytes = (bytes + kLengthAlignment - 1) / kLengthAlignment * kLengthAlignment;
++    std::vector<uint32_t> words(bytes / sizeof(uint32_t));
++
++    const uint32_t frequency = carrierFreqHz;
++    const uint32_t period = (kSpiClockHz + frequency / 2) / frequency;
++    const uint32_t onTime = period * kDutyCycleNum / kDutyCycleDen;
++
++    // Every mark starts its carrier from the beginning of a period.
++    uint32_t phase = 0;
++    size_t slice = 0;
++
++    for (uint64_t bit = 0; bit < bits; bit++) {
++        const int64_t time = bit * kUsPerSecond / kSpiClockHz;
++        while (slice < ends.size() && time > ends[slice]) {
++            slice++;
++        }
++        if (slice == ends.size()) {
++            break;
++        }
++
++        // Even slices are marks, odd ones spaces.
++        if (slice % 2) {
++            phase = 0;
++            continue;
++        }
++
++        if (phase < onTime) {
++            words[bit / kBitsPerWord] |= 1u << (kBitsPerWord - 1 - bit % kBitsPerWord);
++        }
++        if (++phase == period) {
++            phase = 0;
++        }
++    }
++
++    return words;
++}
++
++}  // namespace aidl::android::hardware::ir
+diff --git a/aidl/ir/SpiPattern.h b/aidl/ir/SpiPattern.h
+new file mode 100644
+index 0000000..0d0ab12
+--- /dev/null
++++ b/aidl/ir/SpiPattern.h
+@@ -0,0 +1,24 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#pragma once
++
++#include <cstdint>
++#include <optional>
++#include <vector>
++
++namespace aidl::android::hardware::ir {
++
++// Renders an IR burst into the bitmap /dev/ir_spi clocks out to the LED.
++//
++// The driver sends the buffer as 32-bit SPI words, most significant bit first,
++// one bit per clock: bit n of the burst is bit (31 - n % 32) of word n / 32.
++// The result is padded with silence to the length the driver is given, and is
++// empty if the burst is too short to hold a single bit. Returns nullopt if the
++// pattern cannot be sent.
++std::optional<std::vector<uint32_t>> RenderPattern(int32_t carrierFreqHz,
++                                                   const std::vector<int32_t>& pattern);
++
++}  // namespace aidl::android::hardware::ir
+diff --git a/aidl/ir/android.hardware.ir-service.xiaomi.rc b/aidl/ir/android.hardware.ir-service.xiaomi.rc
+new file mode 100644
+index 0000000..5d6f226
+--- /dev/null
++++ b/aidl/ir/android.hardware.ir-service.xiaomi.rc
+@@ -0,0 +1,10 @@
++#
++# SPDX-FileCopyrightText: The LineageOS Project
++# SPDX-License-Identifier: Apache-2.0
++#
++
++service vendor.ir-default /vendor/bin/hw/android.hardware.ir-service.xiaomi
++    class hal
++    user system
++    group system
++    shutdown critical
+diff --git a/aidl/ir/android.hardware.ir-service.xiaomi.xml b/aidl/ir/android.hardware.ir-service.xiaomi.xml
+new file mode 100644
+index 0000000..08eda3a
+--- /dev/null
++++ b/aidl/ir/android.hardware.ir-service.xiaomi.xml
+@@ -0,0 +1,11 @@
++<!--
++    SPDX-FileCopyrightText: The LineageOS Project
++    SPDX-License-Identifier: Apache-2.0
++-->
++<manifest version="1.0" type="device">
++    <hal format="aidl">
++        <name>android.hardware.ir</name>
++        <version>1</version>
++        <fqname>IConsumerIr/default</fqname>
++    </hal>
++</manifest>
+diff --git a/aidl/ir/service.cpp b/aidl/ir/service.cpp
+new file mode 100644
+index 0000000..c48ca33
+--- /dev/null
++++ b/aidl/ir/service.cpp
+@@ -0,0 +1,26 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#define LOG_TAG "android.hardware.ir-service.xiaomi"
++
++#include "ConsumerIr.h"
++
++#include <android-base/logging.h>
++#include <android/binder_manager.h>
++#include <android/binder_process.h>
++
++using aidl::android::hardware::ir::ConsumerIr;
++
++int main() {
++    ABinderProcess_setThreadPoolMaxThreadCount(0);
++
++    std::shared_ptr<ConsumerIr> ir = ndk::SharedRefBase::make<ConsumerIr>();
++    const std::string instance = std::string(ConsumerIr::descriptor) + "/default";
++    binder_status_t status = AServiceManager_addService(ir->asBinder().get(), instance.c_str());
++    CHECK_EQ(status, STATUS_OK) << "Failed to add service " << instance << " " << status;
++
++    ABinderProcess_joinThreadPool();
++    return EXIT_FAILURE;  // should not reach
++}

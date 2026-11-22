@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Sun, 15 Nov 2026 19:42:23 +0100
+Subject: [PATCH 10/10] Euicc: Add dada
+
+Change-Id: I95877aa5f1c649e7a64e8bec5dedd0e7b330fa18
+---
+ packages/Euicc/res/values/strings.xml | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/packages/Euicc/res/values/strings.xml b/packages/Euicc/res/values/strings.xml
+index 5371098..8874388 100644
+--- a/packages/Euicc/res/values/strings.xml
++++ b/packages/Euicc/res/values/strings.xml
+@@ -10,6 +10,7 @@
+                 {
+                     \"devices\": [
+                         \"XIG05\",
++                        \"dada\",
+                         \"diting\",
+                         \"fuxi\",
+                         \"garnet\",
+@@ -32,6 +33,7 @@
+                 {
+                     \"devices\": [
+                         \"XIG05\",
++                        \"dada\",
+                         \"diting\",
+                         \"fuxi\",
+                         \"garnet\",

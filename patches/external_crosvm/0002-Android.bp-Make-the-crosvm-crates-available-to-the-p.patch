@@ -1,0 +1,1089 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Iscle <albertiscle9@gmail.com>
+Date: Fri, 13 Nov 2026 13:05:07 +0100
+Subject: [PATCH 2/2] Android.bp: Make the crosvm crates available to the
+ platform
+
+Qualcomm's qcrosvm is a platform binary built on these crates.
+
+Change-Id: I7d84eabaeca3540532b6317bd4252505602d15dd
+---
+ Android.bp                                             |  5 ++++-
+ aarch64/Android.bp                                     |  5 ++++-
+ aarch64_sys_reg/Android.bp                             |  5 ++++-
+ acpi_tables/Android.bp                                 |  5 ++++-
+ android_audio/Android.bp                               |  5 ++++-
+ arch/Android.bp                                        |  5 ++++-
+ argh_helpers/Android.bp                                |  5 ++++-
+ audio_util/Android.bp                                  |  5 ++++-
+ base/Android.bp                                        |  5 ++++-
+ base_tokio/Android.bp                                  |  5 ++++-
+ bit_field/Android.bp                                   |  5 ++++-
+ cargo_embargo.json                                     |  2 +-
+ common/audio_streams/Android.bp                        |  5 ++++-
+ common/balloon_control/Android.bp                      |  5 ++++-
+ common/data_model/Android.bp                           |  5 ++++-
+ common/sync/Android.bp                                 |  5 ++++-
+ cros_async/Android.bp                                  |  5 ++++-
+ cros_fdt/Android.bp                                    |  5 ++++-
+ cros_tracing/Android.bp                                |  5 ++++-
+ cros_tracing_types/Android.bp                          |  5 ++++-
+ crosvm_cli/Android.bp                                  |  5 ++++-
+ crosvm_control/Android.bp                              | 10 ++++++++--
+ devices/Android.bp                                     |  5 ++++-
+ disk/Android.bp                                        |  5 ++++-
+ e2e_tests/guest_under_test/rootfs/readclock/Android.bp | 10 ++++++++--
+ ext2/Android.bp                                        |  5 ++++-
+ fuse/Android.bp                                        |  5 ++++-
+ gpu_display/Android.bp                                 |  6 +++++-
+ hypervisor/Android.bp                                  |  5 ++++-
+ hypervisor/hypervisor_test_macro/Android.bp            |  5 ++++-
+ io_uring/Android.bp                                    |  5 ++++-
+ jail/Android.bp                                        |  5 ++++-
+ kernel_cmdline/Android.bp                              |  5 ++++-
+ kernel_loader/Android.bp                               |  5 ++++-
+ kvm_sys/Android.bp                                     |  5 ++++-
+ libcras_stub/Android.bp                                |  5 ++++-
+ linux_input_sys/Android.bp                             |  5 ++++-
+ metrics/Android.bp                                     |  5 ++++-
+ metrics_events/Android.bp                              |  5 ++++-
+ net_sys/Android.bp                                     |  5 ++++-
+ net_util/Android.bp                                    |  5 ++++-
+ power_monitor/Android.bp                               |  5 ++++-
+ proc_init/Android.bp                                   |  5 ++++-
+ protos/Android.bp                                      |  7 ++++++-
+ resources/Android.bp                                   |  5 ++++-
+ riscv64/Android.bp                                     |  5 ++++-
+ serde_keyvalue/Android.bp                              |  5 ++++-
+ serde_keyvalue/serde_keyvalue_derive/Android.bp        |  5 ++++-
+ snapshot/Android.bp                                    |  5 ++++-
+ swap/Android.bp                                        |  5 ++++-
+ third_party/vmm_vhost/Android.bp                       |  5 ++++-
+ usb_sys/Android.bp                                     |  5 ++++-
+ usb_util/Android.bp                                    |  5 ++++-
+ vendor/generic/anti_tamper/Android.bp                  |  5 ++++-
+ vendor/generic/crash_report/Android.bp                 |  5 ++++-
+ vendor/generic/crypto/Android.bp                       |  5 ++++-
+ vendor/generic/metrics/Android.bp                      |  5 ++++-
+ vendor/generic/metrics_events/Android.bp               |  5 ++++-
+ vendor/generic/proc_init/Android.bp                    |  5 ++++-
+ vendor/generic/vm_control/Android.bp                   |  5 ++++-
+ vfio_sys/Android.bp                                    |  5 ++++-
+ vhost/Android.bp                                       |  5 ++++-
+ virtio_sys/Android.bp                                  |  5 ++++-
+ vm_control/Android.bp                                  |  5 ++++-
+ vm_memory/Android.bp                                   |  5 ++++-
+ x86_64/Android.bp                                      |  5 ++++-
+ 66 files changed, 272 insertions(+), 68 deletions(-)
+
+diff --git a/Android.bp b/Android.bp
+index 22534041e..0aa83e247 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -120,7 +120,10 @@ rust_binary {
+         "libenumn",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     visibility: ["//visibility:public"],
+     arch: {
+         x86_64: {
+diff --git a/aarch64/Android.bp b/aarch64/Android.bp
+index a0d38a69a..825f35984 100644
+--- a/aarch64/Android.bp
++++ b/aarch64/Android.bp
+@@ -50,7 +50,10 @@ rust_library {
+         "libvm_memory",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     target: {
+         // It is necessary to disable this specifically as well as the arch below, because
+         // crosvm_defaults enables it and the more specific target apparently takes precedence over
+diff --git a/aarch64_sys_reg/Android.bp b/aarch64_sys_reg/Android.bp
+index 482eb91db..dd38f73d7 100644
+--- a/aarch64_sys_reg/Android.bp
++++ b/aarch64_sys_reg/Android.bp
+@@ -45,5 +45,8 @@ rust_library {
+         "libserde",
+         "libthiserror",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/acpi_tables/Android.bp b/acpi_tables/Android.bp
+index ef483836c..5698a831d 100644
+--- a/acpi_tables/Android.bp
++++ b/acpi_tables/Android.bp
+@@ -42,5 +42,8 @@ rust_library {
+     crate_root: "src/lib.rs",
+     edition: "2021",
+     rustlibs: ["libzerocopy"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/android_audio/Android.bp b/android_audio/Android.bp
+index 058a2609d..6530d35ed 100644
+--- a/android_audio/Android.bp
++++ b/android_audio/Android.bp
+@@ -38,5 +38,8 @@ rust_library {
+         },
+     },
+     proc_macros: ["libasync_trait"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/arch/Android.bp b/arch/Android.bp
+index f7c34a375..d68e08a22 100644
+--- a/arch/Android.bp
++++ b/arch/Android.bp
+@@ -106,5 +106,8 @@ rust_library {
+         "libvm_memory",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/argh_helpers/Android.bp b/argh_helpers/Android.bp
+index 91a314ea0..73b9ac1af 100644
+--- a/argh_helpers/Android.bp
++++ b/argh_helpers/Android.bp
+@@ -25,5 +25,8 @@ rust_proc_macro {
+         "libquote",
+         "libsyn",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/audio_util/Android.bp b/audio_util/Android.bp
+index 65edea384..55db405a8 100644
+--- a/audio_util/Android.bp
++++ b/audio_util/Android.bp
+@@ -22,5 +22,8 @@ rust_library {
+         "libthiserror",
+     ],
+     proc_macros: ["libasync_trait"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/base/Android.bp b/base/Android.bp
+index 4aa2a29e9..e488f097f 100644
+--- a/base/Android.bp
++++ b/base/Android.bp
+@@ -225,7 +225,10 @@ rust_library {
+         "libbase_event_token_derive",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     target: {
+         android: {
+             rustlibs: ["libandroid_log_sys"],
+diff --git a/base_tokio/Android.bp b/base_tokio/Android.bp
+index d3dd5c9fb..b3928f7f5 100644
+--- a/base_tokio/Android.bp
++++ b/base_tokio/Android.bp
+@@ -57,5 +57,8 @@ rust_library {
+         "libsync_rust",
+         "libtokio",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/bit_field/Android.bp b/bit_field/Android.bp
+index bb131f6a3..2a0fcbb44 100644
+--- a/bit_field/Android.bp
++++ b/bit_field/Android.bp
+@@ -58,5 +58,8 @@ rust_library {
+     crate_root: "src/lib.rs",
+     edition: "2021",
+     proc_macros: ["libbit_field_derive"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/cargo_embargo.json b/cargo_embargo.json
+index e476d7dd1..c53c9c5ee 100644
+--- a/cargo_embargo.json
++++ b/cargo_embargo.json
+@@ -63,7 +63,7 @@
+     "win_util"
+   ],
+   "global_defaults": "crosvm_defaults",
+-  "apex_available": ["com.android.virt"],
++  "apex_available": ["//apex_available:platform", "com.android.virt"],
+   "product_available": false,
+   "vendor_available": false,
+   "module_name_overrides": {
+diff --git a/common/audio_streams/Android.bp b/common/audio_streams/Android.bp
+index e47c9a896..0015c0e4d 100644
+--- a/common/audio_streams/Android.bp
++++ b/common/audio_streams/Android.bp
+@@ -55,5 +55,8 @@ rust_library {
+         "libasync_trait",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/common/balloon_control/Android.bp b/common/balloon_control/Android.bp
+index 87c244a29..06240207a 100644
+--- a/common/balloon_control/Android.bp
++++ b/common/balloon_control/Android.bp
+@@ -22,5 +22,8 @@ rust_library {
+     crate_root: "src/lib.rs",
+     edition: "2021",
+     rustlibs: ["libserde"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/common/data_model/Android.bp b/common/data_model/Android.bp
+index 06d248eb1..5e0844a8b 100644
+--- a/common/data_model/Android.bp
++++ b/common/data_model/Android.bp
+@@ -45,5 +45,8 @@ rust_library {
+         "libserde",
+         "libzerocopy",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/common/sync/Android.bp b/common/sync/Android.bp
+index fca8c6bb5..2540b33a4 100644
+--- a/common/sync/Android.bp
++++ b/common/sync/Android.bp
+@@ -21,5 +21,8 @@ rust_library {
+     cargo_pkg_version: "0.1.99",
+     crate_root: "src/lib.rs",
+     edition: "2021",
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/cros_async/Android.bp b/cros_async/Android.bp
+index 05c31f01c..19928806b 100644
+--- a/cros_async/Android.bp
++++ b/cros_async/Android.bp
+@@ -129,5 +129,8 @@ rust_library {
+         "libpaste",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/cros_fdt/Android.bp b/cros_fdt/Android.bp
+index 0ecc24023..45a2f94f4 100644
+--- a/cros_fdt/Android.bp
++++ b/cros_fdt/Android.bp
+@@ -68,6 +68,9 @@ rust_library {
+         "libthiserror",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     use_expansive_default_srcs: false,
+ }
+diff --git a/cros_tracing/Android.bp b/cros_tracing/Android.bp
+index 1af85368c..2b2f8752c 100644
+--- a/cros_tracing/Android.bp
++++ b/cros_tracing/Android.bp
+@@ -28,5 +28,8 @@ rust_library {
+         "libcros_tracing_types",
+         "libsync_rust",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/cros_tracing_types/Android.bp b/cros_tracing_types/Android.bp
+index 137d8f328..e4fd51e22 100644
+--- a/cros_tracing_types/Android.bp
++++ b/cros_tracing_types/Android.bp
+@@ -25,5 +25,8 @@ rust_library {
+         "libanyhow",
+         "libsync_rust",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/crosvm_cli/Android.bp b/crosvm_cli/Android.bp
+index 90a48abf6..7fae7d944 100644
+--- a/crosvm_cli/Android.bp
++++ b/crosvm_cli/Android.bp
+@@ -25,5 +25,8 @@ rust_library {
+         "libanyhow",
+         "libcfg_if",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/crosvm_control/Android.bp b/crosvm_control/Android.bp
+index b436da3e4..f44d1efed 100644
+--- a/crosvm_control/Android.bp
++++ b/crosvm_control/Android.bp
+@@ -38,7 +38,10 @@ rust_ffi_shared {
+     // doesn't actually exist.
+     //
+     // static_libs: ["libcrosvm_control_test"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_ffi_static {
+@@ -67,6 +70,9 @@ rust_ffi_static {
+     // doesn't actually exist.
+     //
+     // static_libs: ["libcrosvm_control_test"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     visibility: ["//packages/modules/Virtualization/android/virtmgr"],
+ }
+diff --git a/devices/Android.bp b/devices/Android.bp
+index a2f7ef82f..cf83e8c1c 100644
+--- a/devices/Android.bp
++++ b/devices/Android.bp
+@@ -338,7 +338,10 @@ rust_library {
+         "libenumn",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     use_expansive_default_srcs: false,
+     arch: {
+         arm64: {
+diff --git a/disk/Android.bp b/disk/Android.bp
+index 59534912f..ac90ee3ad 100644
+--- a/disk/Android.bp
++++ b/disk/Android.bp
+@@ -92,6 +92,9 @@ rust_library {
+         "libasync_trait",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     visibility: ["//packages/modules/Virtualization/android/virtmgr"],
+ }
+diff --git a/e2e_tests/guest_under_test/rootfs/readclock/Android.bp b/e2e_tests/guest_under_test/rootfs/readclock/Android.bp
+index c18e9f55e..6e1ca88c1 100644
+--- a/e2e_tests/guest_under_test/rootfs/readclock/Android.bp
++++ b/e2e_tests/guest_under_test/rootfs/readclock/Android.bp
+@@ -22,7 +22,10 @@ rust_library {
+         "libserde",
+         "libserde_json",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_binary {
+@@ -41,5 +44,8 @@ rust_binary {
+         "libserde",
+         "libserde_json",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/ext2/Android.bp b/ext2/Android.bp
+index 13a986895..f6cccfb3a 100644
+--- a/ext2/Android.bp
++++ b/ext2/Android.bp
+@@ -56,5 +56,8 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libenumn"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/fuse/Android.bp b/fuse/Android.bp
+index 29528173f..473cfe3e7 100644
+--- a/fuse/Android.bp
++++ b/fuse/Android.bp
+@@ -63,7 +63,10 @@ rust_library {
+         "libenumn",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     visibility: [
+         "//packages/modules/Virtualization/guest/authfs",
+         "//packages/modules/Virtualization/guest/zipfuse",
+diff --git a/gpu_display/Android.bp b/gpu_display/Android.bp
+index 33d18f243..13967ea15 100644
+--- a/gpu_display/Android.bp
++++ b/gpu_display/Android.bp
+@@ -65,7 +65,10 @@ rust_library {
+             ],
+         },
+     },
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ cc_library_static {
+@@ -98,6 +101,7 @@ cc_library_static {
+         },
+     },
+     apex_available: [
++        "//apex_available:platform",
+         "com.android.virt",
+     ],
+ }
+diff --git a/hypervisor/Android.bp b/hypervisor/Android.bp
+index f3ca9d5b5..5a7779412 100644
+--- a/hypervisor/Android.bp
++++ b/hypervisor/Android.bp
+@@ -509,7 +509,10 @@ rust_library {
+         "libvm_memory",
+     ],
+     proc_macros: ["libenumn"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     arch: {
+         arm64: {
+             rustlibs: ["libaarch64_sys_reg"],
+diff --git a/hypervisor/hypervisor_test_macro/Android.bp b/hypervisor/hypervisor_test_macro/Android.bp
+index 7faadf2e6..74fe379cf 100644
+--- a/hypervisor/hypervisor_test_macro/Android.bp
++++ b/hypervisor/hypervisor_test_macro/Android.bp
+@@ -22,5 +22,8 @@ rust_proc_macro {
+         "librand",
+         "libsyn",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/io_uring/Android.bp b/io_uring/Android.bp
+index 386d7daf0..67e30cf15 100644
+--- a/io_uring/Android.bp
++++ b/io_uring/Android.bp
+@@ -28,5 +28,8 @@ rust_library {
+         "libthiserror",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/jail/Android.bp b/jail/Android.bp
+index c0958b98b..dd69942ec 100644
+--- a/jail/Android.bp
++++ b/jail/Android.bp
+@@ -61,5 +61,8 @@ rust_library {
+         "libstatic_assertions",
+         "libzerocopy",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/kernel_cmdline/Android.bp b/kernel_cmdline/Android.bp
+index abba41e6d..df7cfcc16 100644
+--- a/kernel_cmdline/Android.bp
++++ b/kernel_cmdline/Android.bp
+@@ -47,5 +47,8 @@ rust_library {
+         "libthiserror",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/kernel_loader/Android.bp b/kernel_loader/Android.bp
+index 8e38237dc..c6e451b64 100644
+--- a/kernel_loader/Android.bp
++++ b/kernel_loader/Android.bp
+@@ -71,6 +71,9 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     use_expansive_default_srcs: false,
+ }
+diff --git a/kvm_sys/Android.bp b/kvm_sys/Android.bp
+index 9087cdb7b..3a7064837 100644
+--- a/kvm_sys/Android.bp
++++ b/kvm_sys/Android.bp
+@@ -50,5 +50,8 @@ rust_library {
+         "liblibc",
+         "libzerocopy",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/libcras_stub/Android.bp b/libcras_stub/Android.bp
+index 0238eb8d6..9e14dafa8 100644
+--- a/libcras_stub/Android.bp
++++ b/libcras_stub/Android.bp
+@@ -25,5 +25,8 @@ rust_library {
+         "libaudio_streams",
+         "libserde",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/linux_input_sys/Android.bp b/linux_input_sys/Android.bp
+index 289a3978a..ecd49c4c3 100644
+--- a/linux_input_sys/Android.bp
++++ b/linux_input_sys/Android.bp
+@@ -27,5 +27,8 @@ rust_library {
+         "liblibc",
+         "libzerocopy",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/metrics/Android.bp b/metrics/Android.bp
+index fb3929ecd..1a01ef63b 100644
+--- a/metrics/Android.bp
++++ b/metrics/Android.bp
+@@ -31,7 +31,10 @@ rust_library {
+         "libsync_rust",
+     ],
+     aliases: ["metrics_generic:metrics_product"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/metrics_events/Android.bp b/metrics_events/Android.bp
+index c6b94ee58..9cdf12d5b 100644
+--- a/metrics_events/Android.bp
++++ b/metrics_events/Android.bp
+@@ -23,5 +23,8 @@ rust_library {
+         "libserde",
+     ],
+     aliases: ["metrics_events_generic:metrics_events_product"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/net_sys/Android.bp b/net_sys/Android.bp
+index 930d4c700..29f5638fe 100644
+--- a/net_sys/Android.bp
++++ b/net_sys/Android.bp
+@@ -25,5 +25,8 @@ rust_library {
+         "libbase_rust",
+         "liblibc",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/net_util/Android.bp b/net_util/Android.bp
+index 7d2c7bc4f..5f9ce9cc0 100644
+--- a/net_util/Android.bp
++++ b/net_util/Android.bp
+@@ -34,7 +34,10 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/power_monitor/Android.bp b/power_monitor/Android.bp
+index ce9d1c593..4f7705dfb 100644
+--- a/power_monitor/Android.bp
++++ b/power_monitor/Android.bp
+@@ -35,5 +35,8 @@ rust_library {
+         "libthiserror",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/proc_init/Android.bp b/proc_init/Android.bp
+index 109222f2c..334f0bdbd 100644
+--- a/proc_init/Android.bp
++++ b/proc_init/Android.bp
+@@ -28,5 +28,8 @@ rust_library {
+         "libproc_init_product",
+         "libserde",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/protos/Android.bp b/protos/Android.bp
+index c791149c4..15c7f4792 100644
+--- a/protos/Android.bp
++++ b/protos/Android.bp
+@@ -30,7 +30,10 @@ rust_library {
+         "libprotobuf",
+         "libregistered_events_proto",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_protobuf {
+@@ -40,6 +43,7 @@ rust_protobuf {
+     source_stem: "cdisk_spec",
+     host_supported: true,
+     apex_available: [
++        "//apex_available:platform",
+         "com.android.virt",
+     ],
+ }
+@@ -51,6 +55,7 @@ rust_protobuf {
+     source_stem: "registered_events",
+     host_supported: true,
+     apex_available: [
++        "//apex_available:platform",
+         "com.android.virt",
+     ],
+ }
+diff --git a/resources/Android.bp b/resources/Android.bp
+index 3a328402e..a6a35311a 100644
+--- a/resources/Android.bp
++++ b/resources/Android.bp
+@@ -28,7 +28,10 @@ rust_library {
+         "libthiserror",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/riscv64/Android.bp b/riscv64/Android.bp
+index 995737361..56322707d 100644
+--- a/riscv64/Android.bp
++++ b/riscv64/Android.bp
+@@ -41,5 +41,8 @@ rust_library {
+         "libvm_memory",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/serde_keyvalue/Android.bp b/serde_keyvalue/Android.bp
+index 5d80bddc7..973380d19 100644
+--- a/serde_keyvalue/Android.bp
++++ b/serde_keyvalue/Android.bp
+@@ -37,7 +37,10 @@ rust_library {
+         "libremain",
+         "libserde_keyvalue_derive",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/serde_keyvalue/serde_keyvalue_derive/Android.bp b/serde_keyvalue/serde_keyvalue_derive/Android.bp
+index a2426cfa0..b0bd0fb2c 100644
+--- a/serde_keyvalue/serde_keyvalue_derive/Android.bp
++++ b/serde_keyvalue/serde_keyvalue_derive/Android.bp
+@@ -26,5 +26,8 @@ rust_proc_macro {
+         "libquote",
+         "libsyn",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/snapshot/Android.bp b/snapshot/Android.bp
+index 8f6ce7fc0..d3bce33da 100644
+--- a/snapshot/Android.bp
++++ b/snapshot/Android.bp
+@@ -25,5 +25,8 @@ rust_library {
+         "libserde_json",
+     ],
+     aliases: ["crypto_generic:crypto"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/swap/Android.bp b/swap/Android.bp
+index f94f3bf87..f1cd5f470 100644
+--- a/swap/Android.bp
++++ b/swap/Android.bp
+@@ -37,5 +37,8 @@ rust_library {
+         "libvm_memory",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/third_party/vmm_vhost/Android.bp b/third_party/vmm_vhost/Android.bp
+index 5536942a8..d29c08368 100644
+--- a/third_party/vmm_vhost/Android.bp
++++ b/third_party/vmm_vhost/Android.bp
+@@ -37,7 +37,10 @@ rust_library {
+         "libenumn",
+         "libremain",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/usb_sys/Android.bp b/usb_sys/Android.bp
+index b51787566..5a507db46 100644
+--- a/usb_sys/Android.bp
++++ b/usb_sys/Android.bp
+@@ -22,5 +22,8 @@ rust_library {
+     crate_root: "src/lib.rs",
+     edition: "2021",
+     rustlibs: ["libbase_rust"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/usb_util/Android.bp b/usb_util/Android.bp
+index 1d08b7fa3..331fa02be 100644
+--- a/usb_util/Android.bp
++++ b/usb_util/Android.bp
+@@ -32,7 +32,10 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/vendor/generic/anti_tamper/Android.bp b/vendor/generic/anti_tamper/Android.bp
+index f27ac7dd4..f74e8db10 100644
+--- a/vendor/generic/anti_tamper/Android.bp
++++ b/vendor/generic/anti_tamper/Android.bp
+@@ -22,5 +22,8 @@ rust_library {
+     crate_root: "src/lib.rs",
+     edition: "2021",
+     rustlibs: ["libbase_rust"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vendor/generic/crash_report/Android.bp b/vendor/generic/crash_report/Android.bp
+index 25de5535b..5f77b5f84 100644
+--- a/vendor/generic/crash_report/Android.bp
++++ b/vendor/generic/crash_report/Android.bp
+@@ -26,5 +26,8 @@ rust_library {
+         "libbase_rust",
+         "libserde",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vendor/generic/crypto/Android.bp b/vendor/generic/crypto/Android.bp
+index ae4ed80f8..f8c92ec22 100644
+--- a/vendor/generic/crypto/Android.bp
++++ b/vendor/generic/crypto/Android.bp
+@@ -28,5 +28,8 @@ rust_library {
+         "libserde_json",
+         "libzeroize",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vendor/generic/metrics/Android.bp b/vendor/generic/metrics/Android.bp
+index 66c06e265..104c67c50 100644
+--- a/vendor/generic/metrics/Android.bp
++++ b/vendor/generic/metrics/Android.bp
+@@ -27,5 +27,8 @@ rust_library {
+         "libbase_rust",
+         "libmetrics_events",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vendor/generic/metrics_events/Android.bp b/vendor/generic/metrics_events/Android.bp
+index b53f8a083..a920aa0ff 100644
+--- a/vendor/generic/metrics_events/Android.bp
++++ b/vendor/generic/metrics_events/Android.bp
+@@ -17,5 +17,8 @@ rust_library {
+     crate_root: "src/lib.rs",
+     edition: "2021",
+     rustlibs: ["libserde"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vendor/generic/proc_init/Android.bp b/vendor/generic/proc_init/Android.bp
+index 896536d09..a26fb611a 100644
+--- a/vendor/generic/proc_init/Android.bp
++++ b/vendor/generic/proc_init/Android.bp
+@@ -25,5 +25,8 @@ rust_library {
+         "libanyhow",
+         "libserde",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vendor/generic/vm_control/Android.bp b/vendor/generic/vm_control/Android.bp
+index 3230b05e7..584297bc1 100644
+--- a/vendor/generic/vm_control/Android.bp
++++ b/vendor/generic/vm_control/Android.bp
+@@ -22,5 +22,8 @@ rust_library {
+     crate_root: "src/lib.rs",
+     edition: "2021",
+     rustlibs: ["libserde"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vfio_sys/Android.bp b/vfio_sys/Android.bp
+index 4f132d81a..8e7987440 100644
+--- a/vfio_sys/Android.bp
++++ b/vfio_sys/Android.bp
+@@ -25,5 +25,8 @@ rust_library {
+         "libbase_rust",
+         "libzerocopy",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vhost/Android.bp b/vhost/Android.bp
+index 7f25eca25..d2af00ff6 100644
+--- a/vhost/Android.bp
++++ b/vhost/Android.bp
+@@ -31,7 +31,10 @@ rust_library {
+         "libvm_memory",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/virtio_sys/Android.bp b/virtio_sys/Android.bp
+index 4ab0f7ca9..f92764d23 100644
+--- a/virtio_sys/Android.bp
++++ b/virtio_sys/Android.bp
+@@ -26,5 +26,8 @@ rust_library {
+         "libdata_model",
+         "libzerocopy",
+     ],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+diff --git a/vm_control/Android.bp b/vm_control/Android.bp
+index c301f137e..c6ad14662 100644
+--- a/vm_control/Android.bp
++++ b/vm_control/Android.bp
+@@ -54,7 +54,10 @@ rust_library {
+         "libvm_memory",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/vm_memory/Android.bp b/vm_memory/Android.bp
+index 7914847dc..c61c6c2ab 100644
+--- a/vm_memory/Android.bp
++++ b/vm_memory/Android.bp
+@@ -38,7 +38,10 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+ }
+ 
+ rust_test {
+diff --git a/x86_64/Android.bp b/x86_64/Android.bp
+index c7e5544e8..1168b755b 100644
+--- a/x86_64/Android.bp
++++ b/x86_64/Android.bp
+@@ -52,7 +52,10 @@ rust_library {
+         "libzerocopy",
+     ],
+     proc_macros: ["libremain"],
+-    apex_available: ["com.android.virt"],
++    apex_available: [
++        "//apex_available:platform",
++        "com.android.virt",
++    ],
+     // Exclude arm family manually
+     arch: {
+         arm: {
