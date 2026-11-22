@@ -1154,7 +1154,6 @@ product/etc/init/vendor.qti.qvirt-service.rc
 product/etc/vintf/manifest/vendor.qti.qvirt-service.xml
 product/firmware/vm-system/system.img
 product/lib64/vendor.qti.qvirt-V1-ndk.so
-vendor/etc/qvirtmgr-vndr.json
 
 # Video
 vendor/lib64/libstreamparser.so

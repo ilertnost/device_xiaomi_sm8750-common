@@ -384,8 +384,6 @@ $(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk
 # Trusted VM
 PRODUCT_PACKAGES += \
     product_vm-system_mountpoint \
-    qcrosvm \
-    qcrosvm.policy
 
 $(call soong_config_set,qti_fwk_valueadds,fwk_supports_full_valueadds,enabled)
 
