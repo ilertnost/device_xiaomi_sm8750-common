@@ -4,3 +4,6 @@ type mi_thermald_exec, exec_type, vendor_file_type, file_type;
 init_daemon_domain(mi_thermald)
 
 dontaudit mi_thermald self:capability { dac_override dac_read_search };
+
+r_dir_file(mi_thermald, vendor_sysfs_displayfeature)
+r_dir_file(mi_thermald, vendor_sysfs_graphics)
