@@ -45,3 +45,6 @@ allow displayfeature hal_framecapturemanager_service:service_manager find;
 allow displayfeature vendor_display_vendor_data_file:dir create_dir_perms;
 allow displayfeature vendor_display_vendor_data_file:file create_file_perms;
 r_dir_file(displayfeature, vendor_persist_display_file)
+
+add_service(displayfeature, vendor_miclstc_service)
+binder_call(displayfeature, hal_graphics_composer_default)

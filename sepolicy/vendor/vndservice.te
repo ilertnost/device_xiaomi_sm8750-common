@@ -1,1 +1,3 @@
 type vendor_displayfeature_control_service, vndservice_manager_type;
+
+type vendor_miclstc_service, vndservice_manager_type;
