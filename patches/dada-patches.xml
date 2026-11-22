@@ -134,4 +134,7 @@
            remote="lineage"
            revision="b75ec20e94b35e067f3af67e628df294b49505d0"
            groups="qcom,qssi" />
+  <project path="hardware/interfaces" name="ilertnost/android_hardware_interfaces" remote="github" revision="lineage-24.0" />
+  <project path="packages/modules/Bluetooth" name="ilertnost/android_packages_modules_Bluetooth" remote="github" revision="cnb" />
+  <project path="vendor/qcom/opensource/display-core" name="ilertnost/vendor_qcom_opensource_display-core" remote="github" revision="lineage-24.0" />
 </manifest>
