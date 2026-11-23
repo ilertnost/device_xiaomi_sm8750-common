@@ -30,7 +30,7 @@ external_rust_rutabaga_gfx/                 -> external/rust/rutabaga_gfx
 packages_modules_Bluetooth/                 -> packages/modules/Bluetooth
 packages_modules_Virtualization/            -> packages/modules/Virtualization
 hardware_xiaomi/                            -> hardware/xiaomi
-hardware_qcom-caf_sm8750_display_hal/       -> hardware/qcom-caf/sm8750/display/hal
+hardware_qcom-caf_sm8750_display/           -> hardware/qcom-caf/sm8750/display
 vendor_qcom_opensource_display-core/        -> vendor/qcom/opensource/display-core
 vendor_qcom_opensource_display-intf/        -> vendor/qcom/opensource/display-intf
 vendor_qcom_opensource_interfaces/          -> vendor/qcom/opensource/interfaces
@@ -104,7 +104,7 @@ their owners and pinned to the commits the patches were generated against:
 | `external/rust/rutabaga_gfx` | AOSP | `1f181b0b3e` |
 | `packages/modules/Virtualization` | AOSP | `22f1c9ee92` |
 | `hardware/xiaomi` | LineageOS | `fb0a2d51c7` |
-| `hardware/qcom-caf/sm8750/display/hal` | LineageOS | `5b970807ee` |
+| `hardware/qcom-caf/sm8750/display` | LineageOS | `5b970807ee` |
 | `vendor/qcom/opensource/display-core` | LineageOS | `89aa1914da` |
 | `vendor/qcom/opensource/display-intf` | LineageOS | `19b5c055b4` |
 | `packages/modules/Bluetooth` | Evolution-X | `00f2fc1131` |
@@ -147,7 +147,7 @@ carries HyperOS blobs. Its patches live under
 | `external/rust/rutabaga_gfx` | 1 | Android.bp visibility |
 | `packages/modules/Virtualization` | 1 | display client AIDL for the platform |
 | `hardware/xiaomi` | 10 | fingerprint, MiSys, IR, powershare, sensors, touchfeature, Euicc |
-| `hardware/qcom-caf/sm8750/display/hal` | 3 | getDisplayAttributes, xiaomi_rgb_notifier, panel size |
+| `hardware/qcom-caf/sm8750/display` | 3 | getDisplayAttributes, xiaomi_rgb_notifier, panel size |
 | `vendor/qcom/opensource/display-core` | 3 | getDisplayAttributes, light sensor, panel size |
 | `vendor/qcom/opensource/display-intf` | 1 | display attributes by hardware composer |
 | `packages/modules/Bluetooth` | 2 | one CIS per channel; subrating disabled |
