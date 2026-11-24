@@ -30,9 +30,9 @@ external_rust_rutabaga_gfx/                 -> external/rust/rutabaga_gfx
 packages_modules_Bluetooth/                 -> packages/modules/Bluetooth
 packages_modules_Virtualization/            -> packages/modules/Virtualization
 hardware_xiaomi/                            -> hardware/xiaomi
-hardware_qcom-caf_sm8750_display/           -> hardware/qcom-caf/sm8750/display
-vendor_qcom_opensource_display-core/        -> vendor/qcom/opensource/display-core
-vendor_qcom_opensource_display-intf/        -> vendor/qcom/opensource/display-intf
+hardware_qcom-caf_sm8750_display_hal/       -> hardware/qcom-caf/sm8750/display/hal
+hardware_qcom-caf_sm8750_display_core/      -> hardware/qcom-caf/sm8750/display/core
+hardware_qcom-caf_sm8750_display_intf/      -> hardware/qcom-caf/sm8750/display/intf
 vendor_qcom_opensource_interfaces/          -> vendor/qcom/opensource/interfaces
 ```
 
@@ -104,11 +104,18 @@ their owners and pinned to the commits the patches were generated against:
 | `external/rust/rutabaga_gfx` | AOSP | `1f181b0b3e` |
 | `packages/modules/Virtualization` | AOSP | `22f1c9ee92` |
 | `hardware/xiaomi` | LineageOS | `fb0a2d51c7` |
-| `hardware/qcom-caf/sm8750/display` | LineageOS | `5b970807ee` |
-| `vendor/qcom/opensource/display-core` | LineageOS | `89aa1914da` |
-| `vendor/qcom/opensource/display-intf` | LineageOS | `19b5c055b4` |
+| `hardware/qcom-caf/sm8750/display/hal` | LineageOS | `5b970807ee` |
+| `hardware/qcom-caf/sm8750/display/core` | LineageOS | `89aa1914da` |
+| `hardware/qcom-caf/sm8750/display/intf` | LineageOS | `19b5c055b4` |
 | `packages/modules/Bluetooth` | Evolution-X | `00f2fc1131` |
 | `vendor/qcom/opensource/interfaces` | LineageOS | `b75ec20e94` |
+
+The display projects keep the parent manifest layout
+`hardware/qcom-caf/sm8750/display/{core,hal,intf}`. The HAL must not be checked
+out at the `display` root; that layout breaks the
+`hardware/qcom-caf/sm8750` Soong namespace and the build fails with
+`display/media/mmm_color_fmt.h: file not found`. The patch directories follow
+the new paths (`..._display_hal`, `..._display_core`, `..._display_intf`).
 
 Switching (after the patches have been verified):
 
@@ -147,9 +154,9 @@ carries HyperOS blobs. Its patches live under
 | `external/rust/rutabaga_gfx` | 1 | Android.bp visibility |
 | `packages/modules/Virtualization` | 1 | display client AIDL for the platform |
 | `hardware/xiaomi` | 10 | fingerprint, MiSys, IR, powershare, sensors, touchfeature, Euicc |
-| `hardware/qcom-caf/sm8750/display` | 3 | getDisplayAttributes, xiaomi_rgb_notifier, panel size |
-| `vendor/qcom/opensource/display-core` | 3 | getDisplayAttributes, light sensor, panel size |
-| `vendor/qcom/opensource/display-intf` | 1 | display attributes by hardware composer |
+| `hardware/qcom-caf/sm8750/display/hal` | 3 | getDisplayAttributes, xiaomi_rgb_notifier, panel size |
+| `hardware/qcom-caf/sm8750/display/core` | 3 | getDisplayAttributes, light sensor, panel size |
+| `hardware/qcom-caf/sm8750/display/intf` | 1 | display attributes by hardware composer |
 | `packages/modules/Bluetooth` | 2 | one CIS per channel; subrating disabled |
 | `vendor/qcom/opensource/interfaces` | 1 | `codecSpecific` in classicVendorConfiguration |
 

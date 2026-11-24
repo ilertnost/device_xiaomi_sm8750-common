@@ -38,30 +38,17 @@
   <project path="hardware/xiaomi" name="android_hardware_xiaomi" remote="lineage" revision="fb0a2d51c741b4a6af3acc76a337aa4f3d7f9977" />
 
   <!--
-      Display stack: upstream, pinned to the patch base.
-      The CAF copies of display/core and display/intf are dropped; the same
-      modules come from the open-source sdm/sde-drm and display-intf projects
-      checked out under vendor/qcom/opensource.
+      CAF display: upstream, pinned to the patch base.  Keep the parent
+      manifest layout display/{core,hal,intf}; the HAL must not live at the
+      display root, or the build fails with
+      "display/media/mmm_color_fmt.h: file not found".
   -->
-  <remove-project name="LineageOS/android_hardware_qcom_display"
-                  path="hardware/qcom-caf/sm8750/display/hal" />
-  <remove-project name="LineageOS/android_vendor_qcom_opensource_display-core"
-                  path="hardware/qcom-caf/sm8750/display/core" />
-  <remove-project name="LineageOS/android_vendor_qcom_opensource_display-intf"
-                  path="hardware/qcom-caf/sm8750/display/intf" />
-
-  <project path="hardware/qcom-caf/sm8750/display"
-           name="android_hardware_qcom_display"
-           remote="lineage"
-           revision="5b970807ee568f53d8c9c17dae1202059c9fafc3" />
-  <project path="vendor/qcom/opensource/display-core"
-           name="android_vendor_qcom_opensource_display-core"
-           remote="lineage"
-           revision="89aa1914da50aae0fb1b2ebf3db38d34fba5f748" />
-  <project path="vendor/qcom/opensource/display-intf"
-           name="android_vendor_qcom_opensource_display-intf"
-           remote="lineage"
-           revision="19b5c055b40bc3d7af4309662eea98c7e7a72cee" />
+  <remove-project path="hardware/qcom-caf/sm8750/display/core" />
+  <remove-project path="hardware/qcom-caf/sm8750/display/hal" />
+  <remove-project path="hardware/qcom-caf/sm8750/display/intf" />
+  <project path="hardware/qcom-caf/sm8750/display/core" name="android_vendor_qcom_opensource_display-core" remote="lineage" revision="89aa1914da50aae0fb1b2ebf3db38d34fba5f748" groups="qcom" />
+  <project path="hardware/qcom-caf/sm8750/display/hal"  name="android_hardware_qcom_display"               remote="lineage" revision="5b970807ee568f53d8c9c17dae1202059c9fafc3" groups="qcom" />
+  <project path="hardware/qcom-caf/sm8750/display/intf" name="android_vendor_qcom_opensource_display-intf" remote="lineage" revision="19b5c055b40bc3d7af4309662eea98c7e7a72cee" groups="qcom" />
 
   <!-- Camera fixes: upstream + patches/frameworks_av, frameworks_native -->
   <remove-project name="frameworks_av" path="frameworks/av" />
@@ -134,4 +121,10 @@
            remote="lineage"
            revision="b75ec20e94b35e067f3af67e628df294b49505d0"
            groups="qcom,qssi" />
+
+  <!--
+      frameworks/base SystemUI links axquicklook-client.  Upstream removed the
+      AxQuickLook project from its manifest, so keep it here as well.
+  -->
+  <project path="packages/services/AxQuickLook" name="packages_services_AxQuickLook" remote="evo" />
 </manifest>
