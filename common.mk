@@ -100,6 +100,11 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.camera.full.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.full.xml \
     frameworks/native/data/etc/android.hardware.camera.raw.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.raw.xml
 
+# Camera performance task profiles and cgroups (Xiaomi cameraopt)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/camera/task_profiles.json:$(TARGET_COPY_OUT_VENDOR)/etc/task_profiles.json \
+    $(LOCAL_PATH)/configs/camera/init.miui.cameraopt.rc:$(TARGET_COPY_OUT_SYSTEM_EXT)/etc/init/init.miui.cameraopt.rc
+
 # Context Hub
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.context_hub.xml:$(TARGET_COPY_OUT_ODM)/etc/permissions/android.hardware.context_hub.xml
